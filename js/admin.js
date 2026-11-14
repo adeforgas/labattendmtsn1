@@ -6,11 +6,7 @@
   const { esc, ic, $, $$, LS } = LA;
   const A = LA.admin = { d: LS.get('la_adm', null), page: 'dashboard', S: { pres: {}, kor: {}, lap: {}, mur: {}, kom: {}, log: {}, per: {} }, pages: {}, loading: false };
   LA.token = LS.get('la_tok', '') || ''; LA.me = LS.get('la_me', null);
-<<<<<<< HEAD
   const NAV = [['dashboard', 'Dashboard', 'dashboard'], ['presensi', 'Monitoring Presensi', 'sensors'], ['persetujuan', 'Persetujuan', 'verified_user'], ['murid', 'Murid & Kelas', 'groups'], ['komputer', 'Komputer', 'computer'], ['jadwal', 'Jadwal', 'calendar_month'], ['koreksi', 'Koreksi Presensi', 'edit_note'], ['laporan', 'Laporan Rekap', 'assessment'], ['log', 'Log Aktivitas', 'receipt_long'], ['tata', 'Tata Tertib Lab', 'gavel'], ['database', 'Pengelolaan Database', 'database'], ['pengaturan', 'Pengaturan Aplikasi', 'settings']];
-=======
-  const NAV = [['dashboard', 'Dashboard', 'dashboard'], ['presensi', 'Monitoring Presensi', 'sensors'], ['persetujuan', 'Persetujuan', 'verified_user'], ['murid', 'Murid & Kelas', 'groups'], ['komputer', 'Komputer', 'computer'], ['jadwal', 'Jadwal', 'calendar_month'], ['koreksi', 'Koreksi Presensi', 'edit_note'], ['laporan', 'Laporan Rekap', 'assessment'], ['log', 'Log Aktivitas', 'receipt_long'], ['pengaturan', 'Pengaturan Aplikasi', 'settings']];
->>>>>>> 17006b8086ee2b3c16ee9882f00bbf1cf21f9c7c
   const MOBILE = ['dashboard', 'persetujuan', 'murid', 'komputer', 'laporan'];
   const isK = () => LA.me && LA.me.role === 'kepala';
   const allowed = p => !isK() || p === 'laporan';
@@ -74,11 +70,7 @@
     clearInterval(A.poll);
     if (h === '/login') return loginView(); if (h === '/darurat') return daruratView();
     if (!LA.token) return LA.go('#/login');
-<<<<<<< HEAD
     await LA.load('js/admin2.js'); await LA.load('js/admin3.js'); await LA.load('js/admin4.js');
-=======
-    await LA.load('js/admin2.js');
->>>>>>> 17006b8086ee2b3c16ee9882f00bbf1cf21f9c7c
     let p = (h.split('/')[2] || '').trim(); if (!A.pages[p]) p = isK() ? 'laporan' : 'dashboard';
     if (!allowed(p)) p = 'laporan';
     A.page = p; shell();

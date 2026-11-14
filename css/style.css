@@ -82,12 +82,9 @@ textarea.inp{height:auto;padding:10px 12px;resize:vertical;min-height:80px}.inp:
 .login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px;background:radial-gradient(1200px 500px at 50% -10%,#DCFCE7,transparent),var(--canvas)}.login .k-card{max-width:440px;width:100%}
 .pg{display:flex;gap:6px;align-items:center}.pg button{min-width:34px;height:34px;border:0;border-radius:8px;background:transparent;font-weight:500}.pg button.on{background:var(--pri);color:#fff}.pg button:hover:not(.on){background:var(--hover)}
 @media print{.side,.atop,.bnav,.btn,.no-print{display:none!important}.apg{padding:0}}
-<<<<<<< HEAD
 /* ===== Tata Tertib (v1.2) ===== */
 .k-card.tata{padding:28px 28px 26px}
 .tata-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;counter-reset:none}
 .tata-list li{display:flex;gap:14px;align-items:flex-start;padding:14px 16px;border:1px solid var(--bd);border-radius:12px;background:#fff;font-size:15px;line-height:23px}
 .tata-no{flex:none;width:30px;height:30px;border-radius:50%;background:var(--mint);color:var(--pri-d);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px}
 @media(max-width:900px){.k-card.tata{padding:20px}.tata-list li{font-size:14px;padding:12px}}
-=======
->>>>>>> 17006b8086ee2b3c16ee9882f00bbf1cf21f9c7c

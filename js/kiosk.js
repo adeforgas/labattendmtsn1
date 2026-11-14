@@ -11,19 +11,11 @@
   function shell() {
     if ($('#kshell')) return;
     $('#app').innerHTML = '<div id="kshell"><header class="k-hd"><div class="in">' + LA.logoImg() + '<b style="font-size:16px" data-brand="nama">' + esc(LA.app.namaApp) + '</b><span class="pill mint hid" data-brand="lab">' + esc(LA.app.namaSekolah + ' - ' + LA.app.namaLab) + '</span>' +
-<<<<<<< HEAD
       '<nav class="k-nav"><a href="#/tata" data-r="/tata">Tata Tertib</a><a href="#/presensi" data-r="/">Presensi Murid</a><a href="#/jadwal" data-r="/jadwal">Jadwal Praktikum</a><a href="#/unit" data-r="/unit">Status Unit PC</a></nav><span class="grow"></span>' +
       '<span class="pill hid">' + ic('schedule', 's16 pri') + '<span data-clock>--:--:--</span> WIB</span><span class="pill hid"><i class="dot pulse"></i><span id="kon">Lab</span></span>' +
       '<a class="btn g sm" href="#/login">' + ic('admin_panel_settings', 's18') + '<span class="hid2">Login Admin</span></a></div></header><main class="k-main" id="km"></main>' +
       '<footer class="k-ft"><span><b data-brand="sekolah">' + esc(LA.app.namaSekolah) + '</b> • Laboratorium Komputer &amp; Multimedia</span><span id="kfid"></span></footer>' +
       '<nav class="k-bn"><a href="#/tata" data-r="/tata">' + ic('gavel') + 'Tata Tertib</a><a href="#/presensi" data-r="/">' + ic('how_to_reg') + 'Presensi</a><a href="#/jadwal" data-r="/jadwal">' + ic('calendar_month') + 'Jadwal</a><a href="#/unit" data-r="/unit">' + ic('desktop_windows') + 'Unit PC</a><a href="#/login">' + ic('admin_panel_settings') + 'Admin</a></nav></div>';
-=======
-      '<nav class="k-nav"><a href="#/" data-r="/">Presensi Murid</a><a href="#/jadwal" data-r="/jadwal">Jadwal Praktikum</a><a href="#/unit" data-r="/unit">Status Unit PC</a></nav><span class="grow"></span>' +
-      '<span class="pill hid">' + ic('schedule', 's16 pri') + '<span data-clock>--:--:--</span> WIB</span><span class="pill hid"><i class="dot pulse"></i><span id="kon">Lab</span></span>' +
-      '<a class="btn g sm" href="#/login">' + ic('admin_panel_settings', 's18') + '<span class="hid2">Login Admin</span></a></div></header><main class="k-main" id="km"></main>' +
-      '<footer class="k-ft"><span><b data-brand="sekolah">' + esc(LA.app.namaSekolah) + '</b> • Laboratorium Komputer &amp; Multimedia</span><span id="kfid"></span></footer>' +
-      '<nav class="k-bn"><a href="#/" data-r="/">' + ic('how_to_reg') + 'Presensi</a><a href="#/jadwal" data-r="/jadwal">' + ic('calendar_month') + 'Jadwal</a><a href="#/unit" data-r="/unit">' + ic('desktop_windows') + 'Unit PC</a><a href="#/login">' + ic('admin_panel_settings') + 'Admin</a></nav></div>';
->>>>>>> 17006b8086ee2b3c16ee9882f00bbf1cf21f9c7c
     if (!K.tm) K.tm = setInterval(tick, 1000);
   }
   function tick() {
@@ -46,17 +38,12 @@
   }
   LA.ACT['k.retry'] = () => boot();
   const killTimers = () => { clearTimeout(K.rt); clearInterval(K.poll); };
-<<<<<<< HEAD
   function reset() { killTimers(); Object.assign(K, { step: 'home', sel: null, pin: '', ticket: '', res: null, pre: null, tolak: null, izin: null, q: '', err: '', busy: false, tataOk: false }); LA.go('#/tata'); }
-=======
-  function reset() { killTimers(); Object.assign(K, { step: 'home', sel: null, pin: '', ticket: '', res: null, pre: null, tolak: null, izin: null, q: '', err: '', busy: false }); draw(); }
->>>>>>> 17006b8086ee2b3c16ee9882f00bbf1cf21f9c7c
 
   /* ---------- router kiosk ---------- */
   K.show = function (h) {
     shell(); killTimers();
     const m = /^\/aktivasi\/([^~\/]+)~(.+)$/.exec(h);
-<<<<<<< HEAD
     if (m) { K.dev = { id: decodeURIComponent(m[1]).toUpperCase(), token: m[2] }; LS.set('la_dev', K.dev); LA.toast('Komputer ' + K.dev.id + ' diaktivasi', 'ok'); history.replaceState(null, '', location.pathname + '#/tata'); h = '/tata'; K.b = null; K.tataOk = false; }
     // Rute: '/tata' = tata tertib (halaman awal), '/' = presensi, '/jadwal', '/unit'.
     // Presensi hanya boleh dibuka setelah murid menekan LANJUT (K.tataOk). Membuka alamat presensi langsung dialihkan ke tata tertib.
@@ -91,15 +78,6 @@
   LA.ACT['k.tataRetry'] = () => tataView();
   LA.ACT['k.lanjutPresensi'] = () => { K.tataOk = true; LA.go('#/presensi'); };
   LA.ACT['k.kembaliTata'] = () => { K.tataOk = false; K.step = 'home'; LA.go('#/tata'); };
-=======
-    if (m) { K.dev = { id: decodeURIComponent(m[1]).toUpperCase(), token: m[2] }; LS.set('la_dev', K.dev); LA.toast('Komputer ' + K.dev.id + ' diaktivasi', 'ok'); history.replaceState(null, '', location.pathname + '#/'); h = '/'; K.b = null; }
-    K.route = h === '/jadwal' || h === '/unit' ? h : '/';
-    $$('[data-r]').forEach(a => a.classList.toggle('on', a.dataset.r === K.route));
-    chips(); tick();
-    if (K.route === '/') { if (!K.b) skeleton(); else draw(); boot(); }
-    else if (K.route === '/jadwal') jadwal(); else unit();
-  };
->>>>>>> 17006b8086ee2b3c16ee9882f00bbf1cf21f9c7c
   const skeleton = () => { $('#km').innerHTML = '<div class="k-wrap"><div class="k-card"><div class="sk" style="height:34px;width:50%;margin-bottom:18px"></div><div class="sk" style="height:90px;margin-bottom:14px"></div><div class="sk" style="height:110px;margin-bottom:14px"></div><div class="sk" style="height:52px"></div></div></div>'; };
 
   /* ---------- gambar langkah ---------- */
@@ -128,10 +106,7 @@
     if (sesi.length) h += sesi.map(s => '<div style="margin-top:10px"><b style="font-size:17px">Kelas ' + esc(s.kelas) + '</b><div class="mut">' + esc(s.mapel) + '</div><div class="row sp" style="margin-top:6px"><span class="row mut">' + ic('schedule', 's18') + esc(s.mulai) + ' — ' + esc(s.selesai) + ' WIB</span>' + (s.fase === 'buka' ? '<span class="badge warn">Belum dimulai</span>' : '') + '</div></div>').join('');
     else h += '<p class="mut" style="margin-top:8px">Belum ada kelas yang jadwalnya terbuka sekarang.</p>';
     h += '<div class="row sp" style="margin-top:10px"><span class="sm mut">Status komputer</span><span class="badge ' + (b.pakai ? 'warn' : 'mut') + '">' + (b.pakai ? 'Sudah Digunakan' : 'Belum Digunakan') + '</span></div></div>';
-<<<<<<< HEAD
     if (b.maint) return h + '<div class="alert" style="margin-bottom:12px">' + ic('construction', 'fill') + '<div><b>Sistem sedang dalam pemeliharaan database.</b><br>Presensi dibuka kembali otomatis setelah selesai (beberapa menit).</div></div><button class="btn lg blk" disabled>Presensi dinonaktifkan sementara</button>';
-=======
->>>>>>> 17006b8086ee2b3c16ee9882f00bbf1cf21f9c7c
     return h + '<button class="btn p lg blk" data-act="k.mulai">Mulai Presensi ' + ic('arrow_forward') + '</button>';
   }
   LA.ACT['k.aktif'] = () => { const id = $('#ad-id').value.trim().toUpperCase(), tk = $('#ad-tk').value.trim(); if (!id || !tk) return LA.toast('Isi Device ID dan token', 'err'); K.dev = { id: id, token: tk }; LS.set('la_dev', K.dev); K.b = null; skeleton(); boot(); };
@@ -176,10 +151,7 @@
     const r = await LA.api('kiosk.verifyPin', Object.assign({ muridId: K.sel.id, pin: K.pin }, body()));
     K.busy = false;
     if (!r.success) {
-<<<<<<< HEAD
       if (r.code === 'MAINT') { LA.toast(r.message, 'err'); boot(true); reset(); return; }
-=======
->>>>>>> 17006b8086ee2b3c16ee9882f00bbf1cf21f9c7c
       K.pin = ''; K.err = r.message;
       if (r.code === 'TERKUNCI') { const m = (K.b.murid || []).find(x => x.id === K.sel.id); if (m) m.l = 1; LS.set('la_kboot', K.b); K.step = 'kelas'; draw(); LA.toast(r.message, 'err'); return; }
       if (r.code && r.code.indexOf('DEVICE_') === 0) { K.b = null; boot(); }
@@ -199,11 +171,7 @@
   LA.ACT['k.submit'] = async el => {
     LA.busy(el, true, 'Mencatat…');
     const r = await LA.api('kiosk.submit', Object.assign({ tiket: K.ticket }, body()));
-<<<<<<< HEAD
     if (!r.success) { LA.busy(el, false); if (r.code === 'MAINT') { LA.toast(r.message, 'err'); boot(true); reset(); return; } if (r.code === 'KOMPUTER_TERPAKAI' || r.code === 'LUAR_JADWAL') { K.tolak = { code: r.code, msg: r.message, bisaIzin: r.code === 'LUAR_JADWAL' ? 'luar_jadwal' : 'komputer' }; K.step = 'tolak'; draw(); } else LA.toast(r.message, 'err'); return; }
-=======
-    if (!r.success) { LA.busy(el, false); if (r.code === 'KOMPUTER_TERPAKAI' || r.code === 'LUAR_JADWAL') { K.tolak = { code: r.code, msg: r.message, bisaIzin: r.code === 'LUAR_JADWAL' ? 'luar_jadwal' : 'komputer' }; K.step = 'tolak'; draw(); } else LA.toast(r.message, 'err'); return; }
->>>>>>> 17006b8086ee2b3c16ee9882f00bbf1cf21f9c7c
     K.res = r.data; K.step = 'sukses'; const m = (K.b.murid || []); K.b.pakai = true; draw();
     K.rt = setTimeout(reset, 60000);
   };
