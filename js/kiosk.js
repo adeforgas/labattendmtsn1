@@ -61,7 +61,7 @@
   /* ---------- Tata tertib: halaman awal murid (v1.2) ---------- */
   async function tataView() {
     const km = $('#km'), kd = $('#kdate'); if (!km) return;
-    $$('[data-r]').forEach(a => a.classList.toggle('on', a.dataset.r === '/'));
+    $$('[data-r]').forEach(a => a.classList.toggle('on', a.dataset.r === '/tata'));
     km.innerHTML = '<div class="k-wrap"><div class="k-card"><div class="sk" style="height:34px;width:60%;margin-bottom:18px"></div><div class="sk" style="height:200px;margin-bottom:14px"></div><div class="sk" style="height:52px"></div></div></div>';
     const r = await LA.api('tata.list', {});
     if (K.route !== '/tata') return;
