@@ -1,7 +1,7 @@
 /* LabAttend — inti frontend: API (dedupe + batch + epoch tulis), jam server, modal, toast, router. Vanilla JS. */
 (function () {
   'use strict';
-  const V = '1.2.1', CFG = window.APP_CONFIG || {};
+  const V = '1.2.2', CFG = window.APP_CONFIG || {};
   const LA = window.LA = { V: V, ACT: {}, IN: {}, token: '', me: null, app: null };
 
   /* ---------- util ---------- */

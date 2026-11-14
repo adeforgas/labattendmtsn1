@@ -71,7 +71,7 @@
       '<div class="row" style="margin-bottom:14px">' + LA.logoImg('k-logo') + '<div><b style="font-size:16px" data-brand="nama">' + esc(LA.app.namaApp) + '</b><div class="sm pri b" data-brand="sekolah">' + esc(LA.app.namaSekolah) + '</div></div></div>' +
       '<h1 class="ctr" style="font-size:22px;line-height:30px;letter-spacing:.02em;margin:6px 0 4px">TATA TERTIB MURID LABORATORIUM KOMPUTER</h1>' +
       '<div class="ctr sm mut" style="margin-bottom:18px">' + esc(LA.app.namaLab || '') + '</div>' +
-      (d.tersedia ? '<ol class="tata-list">' + d.daftar.map(x => '<li><span class="tata-no">' + x.no + '</span><span>' + esc(x.isi) + '</span></li>').join('') + '</ol>' + lanjut
+      (d.tersedia ? '<ol class="tata-list" style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px">' + d.daftar.map(x => '<li style="list-style:none;display:flex;gap:14px;align-items:flex-start;padding:14px 16px;border:1px solid #E5E7EB;border-radius:12px;background:#fff;font-size:15px;line-height:23px">' + '<span class="tata-no" style="flex:none;width:30px;height:30px;border-radius:50%;background:#DCFCE7;color:#14532D;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px">' + x.no + '</span>' + '<span style="flex:1;min-width:0">' + esc(x.isi) + '</span></li>').join('') + '</ol>' + lanjut
         : '<div class="alert i" style="margin:6px 0">' + ic('info') + '<div><b>Tata tertib belum tersedia.</b><br>Silakan hubungi admin lab. Anda tetap dapat melanjutkan ke presensi.</div></div>' + lanjut) +
       '</div></div>';
   }
