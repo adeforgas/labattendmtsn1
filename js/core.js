@@ -1,7 +1,11 @@
 /* LabAttend — inti frontend: API (dedupe + batch + epoch tulis), jam server, modal, toast, router. Vanilla JS. */
 (function () {
   'use strict';
+<<<<<<< HEAD
   const V = '1.2.3', CFG = window.APP_CONFIG || {};
+=======
+  const V = '1.0.0', CFG = window.APP_CONFIG || {};
+>>>>>>> 17006b8086ee2b3c16ee9882f00bbf1cf21f9c7c
   const LA = window.LA = { V: V, ACT: {}, IN: {}, token: '', me: null, app: null };
 
   /* ---------- util ---------- */
@@ -35,7 +39,11 @@
   };
 
   /* ---------- API ---------- */
+<<<<<<< HEAD
   const READ = /^(kiosk\.(boot|publik|cekIzin)|auth\.config|admin\.boot|dash\.get|presensi\.list|murid\.list|komputer\.list|jadwal\.list|persetujuan\.list|laporan\.rekap|log\.list|pengguna\.list|keamanan\.status|db\.ringkas|backup\.list|backup\.periksa|murid\.infoHapus|tata\.list|tata\.admin|batch)$/;
+=======
+  const READ = /^(kiosk\.(boot|publik|cekIzin)|auth\.config|admin\.boot|dash\.get|presensi\.list|murid\.list|komputer\.list|jadwal\.list|persetujuan\.list|laporan\.rekap|log\.list|pengguna\.list|keamanan\.status|batch)$/;
+>>>>>>> 17006b8086ee2b3c16ee9882f00bbf1cf21f9c7c
   let epoch = 0; const inflight = {}, perf = [];
   LA.perf = { table() { console.table(perf.slice(-30)); }, summary() { const o = {}; perf.forEach(p => { const x = o[p.action] || (o[p.action] = { n: 0, total: 0, server: 0 }); x.n++; x.total += p.total; x.server += p.server || 0; }); console.table(Object.keys(o).map(k => ({ aksi: k, n: o[k].n, rataTotalMs: Math.round(o[k].total / o[k].n), rataServerMs: Math.round(o[k].server / o[k].n) }))); } };
   async function post(action, data, tries) {
@@ -95,12 +103,21 @@
     box.appendChild(t); setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity .25s'; setTimeout(() => t.remove(), 260); }, type === 'err' ? 5000 : 2600);
   };
   let modalEl = null;
+<<<<<<< HEAD
   LA.closeModal = function () { LA._noEsc = false; if (modalEl) { modalEl.remove(); modalEl = null; document.removeEventListener('keydown', escK); } };
   function escK(e) { if (e.key === 'Escape' && !LA._noEsc) LA.closeModal(); }
   LA.modal = function (o) {
     LA.closeModal(); LA._noEsc = !!o.noClose;
     const el = document.createElement('div'); el.className = 'ov';
     el.innerHTML = '<div class="md ' + (o.wide ? 'w' : '') + '" role="dialog" aria-modal="true"><div class="hd"><h2>' + LA.esc(o.title || '') + '</h2>' + (o.noClose ? '' : '<button class="btn g ico" data-act="modal.close" aria-label="Tutup">' + LA.ic('close') + '</button>') + '</div><div class="bd">' + (o.body || '') + '</div>' + (o.foot ? '<div class="ft">' + o.foot + '</div>' : '') + '</div>';
+=======
+  LA.closeModal = function () { if (modalEl) { modalEl.remove(); modalEl = null; document.removeEventListener('keydown', escK); } };
+  function escK(e) { if (e.key === 'Escape') LA.closeModal(); }
+  LA.modal = function (o) {
+    LA.closeModal();
+    const el = document.createElement('div'); el.className = 'ov';
+    el.innerHTML = '<div class="md ' + (o.wide ? 'w' : '') + '" role="dialog" aria-modal="true"><div class="hd"><h2>' + LA.esc(o.title || '') + '</h2><button class="btn g ico" data-act="modal.close" aria-label="Tutup">' + LA.ic('close') + '</button></div><div class="bd">' + (o.body || '') + '</div>' + (o.foot ? '<div class="ft">' + o.foot + '</div>' : '') + '</div>';
+>>>>>>> 17006b8086ee2b3c16ee9882f00bbf1cf21f9c7c
     el.addEventListener('mousedown', e => { if (e.target === el && !o.lock) LA.closeModal(); });
     document.body.appendChild(el); modalEl = el; document.addEventListener('keydown', escK);
     const f = el.querySelector('input,select,textarea'); if (f && !o.noFocus) setTimeout(() => f.focus(), 30);
