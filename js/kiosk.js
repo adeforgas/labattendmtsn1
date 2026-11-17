@@ -176,7 +176,6 @@
     K.rt = setTimeout(reset, 60000);
   };
 
-<<<<<<< HEAD
   function blokPelanggaran(r) {
     const p = r.pelanggaran; if (!p) return '';
     const th = 'style="padding:8px 12px;text-align:left;font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:#64748B;background:#F8FAFC"', td = 'style="padding:9px 12px;border-top:1px solid #F1F5F9;font-size:14px"';
@@ -186,8 +185,6 @@
         '<div style="display:flex;justify-content:space-between;padding:12px 16px;background:#FEF2F2;border-top:1px solid #FECACA"><b>Total Poin</b><b class="num" style="font-size:18px;color:#991B1B">' + p.total + '</b></div>'
       : '<div class="alert ok" style="margin:12px;border-radius:10px">' + ic('verified', 'fill') + '<div>Tidak ada catatan pelanggaran. Pertahankan kedisiplinan Anda!</div></div>') + '</div>';
   }
-=======
->>>>>>> 1f135258a00f3062b9229d2718f9bbd330f7f6f9
   function vSukses() {
     const r = K.res, late = r.status === 'Terlambat', dup = K.step === 'sudah', j = r.jadwal || {};
     const w = String(r.waktu || '').split(' '), tgl = w[0] ? LA.dmy(w[0]) : '', col = late ? 'var(--warn)' : 'var(--pri)';
@@ -195,10 +192,7 @@
       '<div class="row mut" style="justify-content:center;margin-top:4px">' + ic('schedule', 's16 pri') + 'Waktu Server: ' + esc(tgl) + ', ' + esc(w[1] || '') + ' WIB</div><div style="margin-top:12px"><span class="badge ' + (late ? 'warn' : '') + '"><i class="dot"></i>' + (late ? 'TERLAMBAT' : 'HADIR (TEPAT WAKTU)') + '</span></div></div><div class="tear"><i></i></div>' +
       '<div class="kv"><span>Nama Murid</span><span>' + esc(r.nama) + '</span></div><div class="kv"><span>NISN</span><span class="num">' + esc(r.nisn) + '</span></div><div class="kv"><span>Kelas</span><span>' + esc(r.kelas) + '</span></div><div class="kv"><span>Nomor Komputer</span><span><span class="pcid">' + ic('desktop_windows', 's16') + esc(r.deviceId) + '</span></span></div><div class="kv"><span>Mata Pelajaran</span><span>' + esc(j.mapel || '-') + '</span></div><div class="kv"><span>ID Sesi</span><span class="mut num" style="font-size:12px">' + esc(r.sesiId) + '</span></div>' +
       (j.selesai ? '<div class="alert i" style="margin-top:14px">' + ic('lock', 'pri') + '<div>Komputer <b class="pri">' + esc(r.deviceId) + '</b> telah terkunci untuk profil Anda hingga sesi praktikum selesai pukul <b>' + esc(j.selesai) + ' WIB</b>.</div></div>' : '') +
-<<<<<<< HEAD
       blokPelanggaran(r) +
-=======
->>>>>>> 1f135258a00f3062b9229d2718f9bbd330f7f6f9
       '<div class="col" style="margin-top:20px"><button class="btn p lg blk" data-act="k.reset">' + ic('check') + 'Selesai &amp; Mulai Praktikum</button><button class="btn g blk" data-act="k.pindah">' + ic('swap_horiz', 's18') + 'Minta Izin Pindah Komputer</button></div>';
   }
 
