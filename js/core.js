@@ -3,7 +3,6 @@
   'use strict';
   const V = '1.3.0', CFG = window.APP_CONFIG || {};
   const LA = window.LA = { V: V, ACT: {}, IN: {}, token: '', me: null, app: null };
-
   /* ---------- util ---------- */
   const LS = LA.LS = {
     get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
