@@ -7,7 +7,6 @@
   const A = LA.admin = { d: LS.get('la_adm', null), page: 'dashboard', S: { pres: {}, kor: {}, lap: {}, mur: {}, kom: {}, log: {}, per: {} }, pages: {}, loading: false };
   LA.token = LS.get('la_tok', '') || ''; LA.me = LS.get('la_me', null);
   const NAV = [['dashboard', 'Dashboard', 'dashboard'], ['presensi', 'Monitoring Presensi', 'sensors'], ['persetujuan', 'Persetujuan', 'verified_user'], ['murid', 'Murid & Kelas', 'groups'], ['komputer', 'Komputer', 'computer'], ['jadwal', 'Jadwal', 'calendar_month'], ['koreksi', 'Koreksi Presensi', 'edit_note'], ['laporan', 'Laporan Rekap', 'assessment'], ['log', 'Log Aktivitas', 'receipt_long'], ['tata', 'Tata Tertib Lab', 'gavel'], ['pelanggaran', 'Poin Pelanggaran', 'report'], ['database', 'Pengelolaan Database', 'database'], ['pengaturan', 'Pengaturan Aplikasi', 'settings']];
-  const NAV = [['dashboard', 'Dashboard', 'dashboard'], ['presensi', 'Monitoring Presensi', 'sensors'], ['persetujuan', 'Persetujuan', 'verified_user'], ['murid', 'Murid & Kelas', 'groups'], ['komputer', 'Komputer', 'computer'], ['jadwal', 'Jadwal', 'calendar_month'], ['koreksi', 'Koreksi Presensi', 'edit_note'], ['laporan', 'Laporan Rekap', 'assessment'], ['log', 'Log Aktivitas', 'receipt_long'], ['tata', 'Tata Tertib Lab', 'gavel'], ['database', 'Pengelolaan Database', 'database'], ['pengaturan', 'Pengaturan Aplikasi', 'settings']];
   const MOBILE = ['dashboard', 'persetujuan', 'murid', 'komputer', 'laporan'];
   const isK = () => LA.me && LA.me.role === 'kepala';
   const allowed = p => !isK() || p === 'laporan';
