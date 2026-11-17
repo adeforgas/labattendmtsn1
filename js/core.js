@@ -2,7 +2,6 @@
 (function () {
   'use strict';
   const V = '1.3.0', CFG = window.APP_CONFIG || {};
-  const V = '1.2.3', CFG = window.APP_CONFIG || {};
   const LA = window.LA = { V: V, ACT: {}, IN: {}, token: '', me: null, app: null };
 
   /* ---------- util ---------- */
