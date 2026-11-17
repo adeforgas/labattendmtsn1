@@ -4,7 +4,11 @@
   'use strict';
   const { esc, ic, $ } = LA, A = LA.admin, H = A.h;
   const S = () => A.S.db || (A.S.db = { tab: 'backup' });
+<<<<<<< HEAD
   const LBL = { Murid: 'Data siswa', Kelas: 'Kelas & rombongan belajar', Presensi: 'Riwayat presensi', Jadwal: 'Jadwal laboratorium', Perpindahan: 'Permintaan pindah komputer', Izin: 'Permintaan izin presensi', Komputer: 'Workstation, Device ID & token', Pengguna: 'Akun & hak akses admin', Pengaturan: 'Pengaturan, nama aplikasi & logo', TataTertib: 'Tata tertib lab', MasterPelanggaran: 'Jenis pelanggaran (master)', RiwayatPelanggaran: 'Catatan poin pelanggaran', Log: 'Log aktivitas admin' };
+=======
+  const LBL = { Murid: 'Data siswa', Kelas: 'Kelas & rombongan belajar', Presensi: 'Riwayat presensi', Jadwal: 'Jadwal laboratorium', Perpindahan: 'Permintaan pindah komputer', Izin: 'Permintaan izin presensi', Komputer: 'Workstation, Device ID & token', Pengguna: 'Akun & hak akses admin', Pengaturan: 'Pengaturan, nama aplikasi & logo', Log: 'Log aktivitas admin' };
+>>>>>>> 1f135258a00f3062b9229d2718f9bbd330f7f6f9
   const TIPE = { manual: ['Manual', ''], 'pra-restore': ['Pengaman restore', 'sq mut'], 'pra-reset': ['Pra-reset', 'sq warn'] };
   const nf = n => LA.nf(n || 0);
 
@@ -84,7 +88,11 @@
   };
 
   /* ================= RESET TAHUN PELAJARAN ================= */
+<<<<<<< HEAD
   const HAPUS = ['Murid', 'Kelas', 'Presensi', 'Jadwal', 'Perpindahan', 'Izin', 'RiwayatPelanggaran'], TETAP = ['Komputer', 'Pengguna', 'Pengaturan', 'TataTertib', 'MasterPelanggaran', 'Log'];
+=======
+  const HAPUS = ['Murid', 'Kelas', 'Presensi', 'Jadwal', 'Perpindahan', 'Izin'], TETAP = ['Komputer', 'Pengguna', 'Pengaturan', 'Log'];
+>>>>>>> 1f135258a00f3062b9229d2718f9bbd330f7f6f9
   const rbOk = () => { const b = S().rb; return b && Date.now() - b.ts < 28 * 60000; };
   function vReset() {
     const s = S(), r = s.ring, ok = rbOk();
