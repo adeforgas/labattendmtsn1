@@ -35,7 +35,6 @@
 
   /* ---------- API ---------- */
   const READ = /^(kiosk\.(boot|publik|cekIzin)|auth\.config|admin\.boot|dash\.get|presensi\.list|murid\.list|komputer\.list|jadwal\.list|persetujuan\.list|laporan\.rekap|log\.list|pengguna\.list|keamanan\.status|db\.ringkas|backup\.list|backup\.periksa|murid\.infoHapus|tata\.list|tata\.admin|pel\.master|pel\.list|batch)$/;
-  const READ = /^(kiosk\.(boot|publik|cekIzin)|auth\.config|admin\.boot|dash\.get|presensi\.list|murid\.list|komputer\.list|jadwal\.list|persetujuan\.list|laporan\.rekap|log\.list|pengguna\.list|keamanan\.status|db\.ringkas|backup\.list|backup\.periksa|murid\.infoHapus|tata\.list|tata\.admin|batch)$/;
   let epoch = 0; const inflight = {}, perf = [];
   LA.perf = { table() { console.table(perf.slice(-30)); }, summary() { const o = {}; perf.forEach(p => { const x = o[p.action] || (o[p.action] = { n: 0, total: 0, server: 0 }); x.n++; x.total += p.total; x.server += p.server || 0; }); console.table(Object.keys(o).map(k => ({ aksi: k, n: o[k].n, rataTotalMs: Math.round(o[k].total / o[k].n), rataServerMs: Math.round(o[k].server / o[k].n) }))); } };
   async function post(action, data, tries) {
