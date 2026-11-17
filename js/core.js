@@ -1,7 +1,7 @@
 /* LabAttend — inti frontend: API (dedupe + batch + epoch tulis), jam server, modal, toast, router. Vanilla JS. */
 (function () {
   'use strict';
-  const V = '1.2.3', CFG = window.APP_CONFIG || {};
+  const V = '1.3.0', CFG = window.APP_CONFIG || {};
   const LA = window.LA = { V: V, ACT: {}, IN: {}, token: '', me: null, app: null };
 
   /* ---------- util ---------- */
@@ -35,7 +35,7 @@
   };
 
   /* ---------- API ---------- */
-  const READ = /^(kiosk\.(boot|publik|cekIzin)|auth\.config|admin\.boot|dash\.get|presensi\.list|murid\.list|komputer\.list|jadwal\.list|persetujuan\.list|laporan\.rekap|log\.list|pengguna\.list|keamanan\.status|db\.ringkas|backup\.list|backup\.periksa|murid\.infoHapus|tata\.list|tata\.admin|batch)$/;
+  const READ = /^(kiosk\.(boot|publik|cekIzin)|auth\.config|admin\.boot|dash\.get|presensi\.list|murid\.list|komputer\.list|jadwal\.list|persetujuan\.list|laporan\.rekap|log\.list|pengguna\.list|keamanan\.status|db\.ringkas|backup\.list|backup\.periksa|murid\.infoHapus|tata\.list|tata\.admin|pel\.master|pel\.list|batch)$/;
   let epoch = 0; const inflight = {}, perf = [];
   LA.perf = { table() { console.table(perf.slice(-30)); }, summary() { const o = {}; perf.forEach(p => { const x = o[p.action] || (o[p.action] = { n: 0, total: 0, server: 0 }); x.n++; x.total += p.total; x.server += p.server || 0; }); console.table(Object.keys(o).map(k => ({ aksi: k, n: o[k].n, rataTotalMs: Math.round(o[k].total / o[k].n), rataServerMs: Math.round(o[k].server / o[k].n) }))); } };
   async function post(action, data, tries) {
