@@ -4,14 +4,10 @@
   'use strict';
   const { esc, ic, $ } = LA, A = LA.admin, H = A.h;
   const S = () => A.S.db || (A.S.db = { tab: 'backup' });
-<<<<<<< HEAD
   const LBL = { Murid: 'Data siswa', Kelas: 'Kelas & rombongan belajar', Presensi: 'Riwayat presensi', Jadwal: 'Jadwal laboratorium', Perpindahan: 'Permintaan pindah komputer', Izin: 'Permintaan izin presensi', Komputer: 'Workstation, Device ID & token', Pengguna: 'Akun & hak akses admin', Pengaturan: 'Pengaturan, nama aplikasi & logo', TataTertib: 'Tata tertib lab', MasterPelanggaran: 'Jenis pelanggaran (master)', RiwayatPelanggaran: 'Catatan poin pelanggaran', Log: 'Log aktivitas admin' };
-=======
   const LBL = { Murid: 'Data siswa', Kelas: 'Kelas & rombongan belajar', Presensi: 'Riwayat presensi', Jadwal: 'Jadwal laboratorium', Perpindahan: 'Permintaan pindah komputer', Izin: 'Permintaan izin presensi', Komputer: 'Workstation, Device ID & token', Pengguna: 'Akun & hak akses admin', Pengaturan: 'Pengaturan, nama aplikasi & logo', Log: 'Log aktivitas admin' };
->>>>>>> 1f135258a00f3062b9229d2718f9bbd330f7f6f9
   const TIPE = { manual: ['Manual', ''], 'pra-restore': ['Pengaman restore', 'sq mut'], 'pra-reset': ['Pra-reset', 'sq warn'] };
   const nf = n => LA.nf(n || 0);
-
   function progress(msg) { return LA.modal({ title: msg, lock: true, noClose: true, noFocus: true, body: '<div class="ctr" style="padding:18px 0"><span class="spin" style="width:38px;height:38px;border-width:3px"></span><p class="mut" style="margin-top:14px">Diproses di server. <b>Jangan menutup atau memuat ulang halaman ini.</b></p></div>' }); }
   function hasil(ok, title, html) { LA.modal({ title: title, body: '<div class="alert ' + (ok ? 'ok' : 'e') + '">' + ic(ok ? 'check_circle' : 'error', 'fill') + '<div>' + html + '</div></div>', foot: '<button class="btn p" data-act="modal.close">Tutup</button>' }); }
   async function load() {
@@ -88,11 +84,8 @@
   };
 
   /* ================= RESET TAHUN PELAJARAN ================= */
-<<<<<<< HEAD
   const HAPUS = ['Murid', 'Kelas', 'Presensi', 'Jadwal', 'Perpindahan', 'Izin', 'RiwayatPelanggaran'], TETAP = ['Komputer', 'Pengguna', 'Pengaturan', 'TataTertib', 'MasterPelanggaran', 'Log'];
-=======
   const HAPUS = ['Murid', 'Kelas', 'Presensi', 'Jadwal', 'Perpindahan', 'Izin'], TETAP = ['Komputer', 'Pengguna', 'Pengaturan', 'Log'];
->>>>>>> 1f135258a00f3062b9229d2718f9bbd330f7f6f9
   const rbOk = () => { const b = S().rb; return b && Date.now() - b.ts < 28 * 60000; };
   function vReset() {
     const s = S(), r = s.ring, ok = rbOk();

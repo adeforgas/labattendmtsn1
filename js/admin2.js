@@ -50,11 +50,8 @@
   LA.ACT['m.del'] = async el => {
     const m = mById(el.dataset.id), r = await W(el, 'murid.infoHapus', { id: m.id }, false); if (!r) return; const x = r.data;
     LA.modal({ title: 'Hapus murid secara permanen?', body: '<div class="box" style="margin-bottom:12px"><div class="row"><span class="av r">' + esc(LA.initials(x.nama)) + '</span><div><b style="font-size:16px">' + esc(x.nama) + '</b><div class="sm mut num">NISN ' + esc(x.nisn) + ' • Kelas ' + esc(x.kelas) + '</div></div></div></div>' +
-<<<<<<< HEAD
       '<div class="alert e" style="margin-bottom:12px">' + ic('warning', 'fill') + '<div><b>Tidak dapat dibatalkan.</b> Data induk murid dan <b>seluruh riwayat presensinya</b> dihapus permanen dari database:<br>• ' + x.presensi + ' catatan presensi<br>• ' + x.perpindahan + ' permintaan pindah komputer<br>• ' + x.izin + ' permintaan izin<br>• ' + (x.pelanggaran || 0) + ' catatan poin pelanggaran<br>Data murid lain dan pengaturan tidak berubah. Bila hanya ingin menonaktifkan, gunakan tombol Nonaktifkan.</div></div>' +
-=======
       '<div class="alert e" style="margin-bottom:12px">' + ic('warning', 'fill') + '<div><b>Tidak dapat dibatalkan.</b> Data induk murid dan <b>seluruh riwayat presensinya</b> dihapus permanen dari database:<br>• ' + x.presensi + ' catatan presensi<br>• ' + x.perpindahan + ' permintaan pindah komputer<br>• ' + x.izin + ' permintaan izin<br>Data murid lain dan pengaturan tidak berubah. Bila hanya ingin menonaktifkan, gunakan tombol Nonaktifkan.</div></div>' +
->>>>>>> 1f135258a00f3062b9229d2718f9bbd330f7f6f9
       '<label class="row" style="align-items:flex-start"><input type="checkbox" id="dl-ok" data-ch="m.delchk" style="margin-top:3px"> <span>Saya mengerti dan ingin menghapus <b>' + esc(x.nama) + '</b> beserta seluruh riwayatnya.</span></label>', foot: '<button class="btn" data-act="modal.close">Batal</button><button class="btn d" id="dl-go" data-act="m.delgo" data-id="' + esc(x.id) + '" disabled>' + ic('delete_forever', 's18') + 'Hapus Permanen</button>' });
   };
   LA.IN['m.delchk'] = el => { $('#dl-go').disabled = !el.checked; };
