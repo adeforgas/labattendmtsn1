@@ -36,18 +36,29 @@
     save(); if (!silent) A.draw();
   };
   const save = LA.debounce(() => LS.set('la_adm', A.d), 800);
+  // Rekonsiliasi di latar setelah aksi tulis: UI sudah berubah lebih dulu; di sini hanya menyamakan dengan server
+  A.sync = async function (keys) {
+    const list = [].concat(keys);
+    if (list.indexOf('kelas') >= 0 || list.indexOf('boot') >= 0) { await boot(true); return; }
+    const snap = list.map(k => JSON.stringify(A.d[RELOAD[k][1]]));
+    await A.reload(list, true);
+    if (list.some((k, i) => JSON.stringify(A.d[RELOAD[k][1]]) !== snap[i])) A.softDraw();
+  };
   const pend = () => { const p = A.d && A.d.persetujuan; return p ? p.pindah.filter(x => x.status === 'Menunggu').length + p.izin.filter(x => x.status === 'Menunggu').length : 0; };
 
   /* ---------- sesi / login ---------- */
   LA.onAuthLost = function () { LA.token = ''; LS.del('la_tok'); LS.del('la_me'); LS.del('la_adm'); A.d = null; LA.toast('Sesi berakhir. Silakan masuk kembali.', 'err'); LA.go('#/login'); };
-  function setSession(d) { LA.token = d.token; LA.me = d.me; LS.set('la_tok', d.token); LS.set('la_me', d.me); A.d = null; LS.del('la_adm'); LA.go('#/admin/' + (d.me.role === 'kepala' ? 'laporan' : 'dashboard')); }
+  function setSession(d) { LA.token = d.token; LA.me = d.me; LS.set('la_tok', d.token); LS.set('la_me', d.me); A.pfOnce = false; if (d.boot) { A.d = d.boot; A.ts = Date.now(); LA.setApp(d.boot.app); try { LS.set('la_adm', d.boot); } catch (e) {} } else { A.d = null; LS.del('la_adm'); } LA.go('#/admin/' + (d.me.role === 'kepala' ? 'laporan' : 'dashboard')); }
   const brandHead = t => '<div class="ctr" style="margin-bottom:18px">' + LA.logoImg('k-logo" style="width:56px;height:56px;margin-bottom:8px') + '<h1>' + t + '</h1><div class="mut" data-brand="sekolah">' + esc(LA.app.namaSekolah) + '</div></div>';
   async function loginView() {
     clearInterval(A.poll); document.body.classList.remove('adm-on');
     $('#app').innerHTML = '<div class="login"><div class="k-card">' + brandHead('Login Pengelola Lab') + '<div id="lerr"></div><div class="ctr" id="gbtn" style="min-height:44px"><span class="spin"></span></div><p class="sm mut ctr" style="margin-top:14px">Masuk dengan akun Google yang terdaftar sebagai Admin atau Kepala Laboratorium. Email di luar daftar ditolak server.</p><div class="ctr" style="margin-top:16px"><a class="btn g sm" href="#/">' + ic('arrow_back', 's18') + 'Kembali ke terminal presensi</a></div></div></div>';
-    const r = await LA.api('auth.config', {}), cid = r.success && r.data.googleClientId;
+    const gis = LA.load('https://accounts.google.com/gsi/client').catch(() => null);            // unduh skrip Google bersamaan dengan auth.config
+    let cid = LS.get('la_cid', '');
+    const rc = LA.api('auth.config', {}).then(r => { const c = r.success && r.data.googleClientId; if (r.success) { if (c) LS.set('la_cid', c); else LS.del('la_cid'); } return c; });
+    if (!cid) cid = await rc;                                                                   // ada cache → tombol Google langsung tampil
     if (!cid) { $('#gbtn').innerHTML = '<div class="alert">' + ic('info') + '<div>Google Client ID belum diisi di server. Pengelola utama: masuk lewat halaman akses darurat (lihat panduan instalasi) lalu isi di <b>Pengaturan → Keamanan</b>.</div></div>'; return; }
-    try { await LA.load('https://accounts.google.com/gsi/client'); } catch (e) { $('#gbtn').innerHTML = '<div class="alert e">' + ic('cloud_off') + '<div>Gagal memuat layanan Google. Periksa koneksi.</div></div>'; return; }
+    try { if (!(await gis) && !window.google) throw new Error('gis'); } catch (e) { $('#gbtn').innerHTML = '<div class="alert e">' + ic('cloud_off') + '<div>Gagal memuat layanan Google. Periksa koneksi.</div></div>'; return; }
     google.accounts.id.initialize({ client_id: cid, callback: async resp => {
       $('#lerr').innerHTML = ''; $('#gbtn').style.opacity = '.5';
       const x = await LA.api('auth.google', { idToken: resp.credential }); $('#gbtn').style.opacity = '';
@@ -70,19 +81,50 @@
     clearInterval(A.poll);
     if (h === '/login') return loginView(); if (h === '/darurat') return daruratView();
     if (!LA.token) return LA.go('#/login');
-    await LA.load('js/admin2.js'); await LA.load('js/admin3.js'); await LA.load('js/admin4.js'); await LA.load('js/admin5.js');
-    await LA.load('js/admin2.js'); await LA.load('js/admin3.js'); await LA.load('js/admin4.js');
+    await LA.loadMany(LA.ADMIN_JS);                                  // sudah dimuat paralel oleh core; di sini hanya memastikan
     let p = (h.split('/')[2] || '').trim(); if (!A.pages[p]) p = isK() ? 'laporan' : 'dashboard';
     if (!allowed(p)) p = 'laporan';
     A.page = p; shell();
     $$('[data-p]').forEach(a => a.classList.toggle('on', a.dataset.p === p));
-    if (A.d) { A.draw(); boot(true); } else { $('#apg').innerHTML = H.sk(5); boot(); }
+    if (A.d) {                                                       // tampil SEKETIKA dari memori; segarkan di latar hanya bila basi
+      A.draw(); if (!A.ts || Date.now() - A.ts > 45000) boot(true);
+      const rv = A.pages[p].revalidate; if (rv && LA.Activity.due('pg_' + p, 30000, 120000)) rv();
+      prefetchPages();
+    } else { $('#apg').innerHTML = H.sk(5); boot(); }
     A.poll = setInterval(poll, 5000);
   };
   async function boot(quiet) {
     const r = await LA.api('admin.boot', {});
     if (!r.success) { if (r.code !== 'AUTH') { if (!quiet || !A.d) $('#apg').innerHTML = '<div class="alert e">' + ic('cloud_off') + '<div><b>' + esc(r.message) + '</b></div></div><button class="btn p" data-act="a.retry">Coba lagi</button>'; } return; }
-    A.d = r.data; LA.me = r.data.me; LS.set('la_me', LA.me); try { LS.set('la_adm', A.d); } catch (e) {} LA.setApp(r.data.app); chrome(); A.draw();
+    const first = !A.d, same = !first && A.same(A.d, r.data);
+    A.d = r.data; A.ts = Date.now(); LA.me = r.data.me; LS.set('la_me', LA.me); if (!same) { try { LS.set('la_adm', A.d); } catch (e) {} } LA.setApp(r.data.app); chrome();
+    if (first || !quiet) A.draw(); else if (!same) A.softDraw();
+    prefetchPages();
+  }
+  A.same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  A.canRedraw = () => { if ($('.ov')) return false; const e = document.activeElement; return !(e && /^(INPUT|SELECT|TEXTAREA)$/.test(e.tagName || '') && e.closest && e.closest('#apg')); };
+  A.softDraw = () => { if (A.canRedraw()) A.draw(); };
+  // Prefetch data semua halaman SEKALI per sesi (1 panggilan batch) → pindah menu instan tanpa skeleton/loading
+  async function prefetchPages() {
+    if (A.pfOnce || !A.d || A.pfRunning) return; A.pfOnce = true; A.pfRunning = true;
+    const today = LA.iso(), S = A.S, fresh = [];
+    try {
+      const calls = isK() ? [['laporan.rekap', { mode: 'harian', tanggal: today, kelasId: '' }]] : [['presensi.list', { tanggal: today, kelasId: '' }], ['laporan.rekap', { mode: 'harian', tanggal: today, kelasId: '' }], ['tata.admin'], ['pel.master'], ['pel.list'], ['pengguna.list'], ['keamanan.status'], ['log.list', { q: '' }]];
+      const R = await Promise.all(calls.map(c => LA.apiQ(c[0], c[1]))), g = i => R[i] && R[i].success ? R[i].data : null;
+      const lap = g(isK() ? 0 : 1);
+      if (lap && !S.lap.data && (!S.lap.mode || S.lap.mode === 'harian') && !S.lap.kelas && (!S.lap.tgl || S.lap.tgl === today)) { S.lap.mode = 'harian'; S.lap.tgl = today; S.lap.bln = today.slice(0, 7); S.lap.data = lap; S.lap.pg = 1; fresh.push('laporan'); }
+      if (!isK()) {
+        const pr = g(0), ta = g(2), pm = g(3), pl = g(4), us = g(5), kc = g(6), lg = g(7);
+        if (pr && !S.pres.rows && !S.pres.kelas && (!S.pres.tgl || S.pres.tgl === today)) { S.pres.tgl = today; S.pres.rows = pr.rows; fresh.push('presensi'); }
+        if (lap && !S.kor.rows && !S.kor.kelas && (!S.kor.tgl || S.kor.tgl === today)) { S.kor.tgl = today; S.kor.rows = lap.sesiRows || []; S.kor.edit = {}; fresh.push('koreksi'); }
+        const T = S.tata || (S.tata = { list: null }); if (ta && !T.list) { T.list = ta; fresh.push('tata'); }
+        const PL = S.pel || (S.pel = { tab: 'catat', master: null, rows: null, f: { sort: 'baru' }, form: {}, pg: 1 }); if (pm && !PL.master) PL.master = pm; if (pl && !PL.rows) PL.rows = pl.rows; if (PL.master && PL.rows) fresh.push('pelanggaran');
+        const ST = S.set || (S.set = {}); if (us && kc && !ST.fetched) { ST.users = us; ST.sec = kc; ST.fetched = 1; fresh.push('pengaturan'); }
+        if (lg && !S.log.rows && !S.log.q) { S.log.rows = lg; fresh.push('log'); }
+      }
+    } catch (e) {}
+    A.pfRunning = false; fresh.forEach(p => { LA.Activity.last['pg_' + p] = Date.now(); });
+    if (A.page !== 'dashboard') A.softDraw();                       // halaman yang sedang menunggu langsung terisi
   }
   LA.ACT['a.retry'] = () => boot();
   A.draw = function () {
@@ -171,10 +213,11 @@
   A.pages.presensi = {
     async load(quiet) {
       const S = A.S.pres; S.tgl = S.tgl || LA.iso(); if (!quiet) { S.rows = null; A.draw(); }
-      const r = await LA.apiQ('presensi.list', { tanggal: S.tgl, kelasId: S.kelas || '' }); if (r.success && A.page === 'presensi') { S.rows = r.data.rows; if (!quiet || !$('.ov')) A.draw(); }
+      const r = await LA.apiQ('presensi.list', { tanggal: S.tgl, kelasId: S.kelas || '' }); if (r.success && A.page === 'presensi') { const same = quiet && A.same(S.rows, r.data.rows); S.rows = r.data.rows; if (!quiet) A.draw(); else if (!same) A.softDraw(); }
     },
+    revalidate() { this.load(true); },
     render() {
-      const S = A.S.pres; S.tgl = S.tgl || LA.iso(); if (!S.rows && !S.fetching) { S.fetching = 1; setTimeout(() => { S.fetching = 0; A.pages.presensi.load(true); }, 0); }
+      const S = A.S.pres; S.tgl = S.tgl || LA.iso(); if (!S.rows && !S.fetching && !A.pfRunning) { S.fetching = 1; setTimeout(() => { S.fetching = 0; A.pages.presensi.load(true); }, 0); }
       const q = (S.q || '').toLowerCase(), rows = (S.rows || []).filter(r => !q || (r.nama + r.nisn + r.deviceId).toLowerCase().includes(q));
       const c = s => (S.rows || []).filter(r => r.status === s).length;
       return H.head('Monitoring Presensi', 'Presensi Murid', 'Pantau presensi secara langsung berdasarkan waktu server.', '<span class="badge"><i class="dot pulse"></i>' + c('Hadir') + ' hadir</span><span class="badge warn">' + c('Terlambat') + ' terlambat</span>') +
@@ -188,9 +231,10 @@
 
   /* ================= LOG ================= */
   A.pages.log = {
-    async load() { const S = A.S.log; S.rows = null; A.draw(); const r = await LA.api('log.list', { q: S.q || '' }); if (r.success) { S.rows = r.data; if (A.page === 'log') A.draw(); } },
+    async load(quiet) { const S = A.S.log; if (!quiet) { S.rows = null; A.draw(); } const r = await LA.api('log.list', { q: S.q || '' }); if (r.success) { const same = quiet && A.same(S.rows, r.data); S.rows = r.data; if (A.page === 'log') { if (!quiet) A.draw(); else if (!same) A.softDraw(); } } },
+    revalidate() { this.load(true); },
     render() {
-      const S = A.S.log; if (!S.rows && !S.f) { S.f = 1; setTimeout(() => { S.f = 0; LA.api('log.list', { q: S.q || '' }).then(r => { if (r.success) { S.rows = r.data; if (A.page === 'log') A.draw(); } }); }, 0); }
+      const S = A.S.log; if (!S.rows && !S.f && !A.pfRunning) { S.f = 1; setTimeout(() => { S.f = 0; LA.api('log.list', { q: S.q || '' }).then(r => { if (r.success) { S.rows = r.data; if (A.page === 'log') A.draw(); } }); }, 0); }
       return H.head('Log Aktivitas', 'Riwayat Aktivitas Sistem', 'Setiap aksi penting tercatat. Rahasia (PIN, token, sandi) tidak pernah dicatat.', '') +
         '<div class="card"><div class="row"><div class="sch grow"><span class="ms">search</span><input class="inp" id="lq" placeholder="Cari aksi, pelaku, entitas…" value="' + esc(S.q || '') + '"></div><button class="btn p" data-act="lg.cari">Cari</button></div></div><div class="card pad0"><div class="tw"><table class="t"><thead><tr><th>Waktu</th><th>Pelaku</th><th>Aksi</th><th>Entitas</th><th>Detail</th></tr></thead><tbody>' +
         (S.rows ? (S.rows.length ? S.rows.map(l => '<tr><td class="num code" style="white-space:nowrap">' + esc(l.waktu) + '</td><td class="sm">' + esc(l.aktor) + '</td><td><span class="badge sq ' + (/TOLAK|GAGAL|KUNCI|HAPUS/.test(l.aksi) ? 'err' : 'mut') + '">' + esc(l.aksi) + '</span></td><td class="sm">' + esc(l.entitas) + '</td><td class="sm mut">' + esc(l.detail) + '</td></tr>').join('') : '<tr><td colspan="5" class="empty">Tidak ada log.</td></tr>') : '<tr><td colspan="5"><div class="sk" style="height:140px"></div></td></tr>') + '</tbody></table></div></div>';
@@ -200,9 +244,10 @@
 
   /* ================= KOREKSI PRESENSI ================= */
   A.pages.koreksi = {
-    async load(quiet) { const S = A.S.kor; S.tgl = S.tgl || LA.iso(); if (!quiet) { S.rows = null; A.draw(); } const r = await LA.api('laporan.rekap', { mode: 'harian', tanggal: S.tgl, kelasId: S.kelas || '' }); if (r.success) { S.rows = r.data.sesiRows || []; S.edit = {}; if (A.page === 'koreksi') A.draw(); } else LA.toast(r.message, 'err'); },
+    async load(quiet) { const S = A.S.kor; S.tgl = S.tgl || LA.iso(); if (!quiet) { S.rows = null; A.draw(); } const r = await LA.api('laporan.rekap', { mode: 'harian', tanggal: S.tgl, kelasId: S.kelas || '' }); if (r.success) { const nr = r.data.sesiRows || [], same = quiet && A.same(S.rows, nr); S.rows = nr; if (!same) S.edit = {}; if (A.page === 'koreksi') { if (!quiet) A.draw(); else if (!same) A.softDraw(); } } else if (!quiet) LA.toast(r.message, 'err'); },
+    revalidate() { if (Object.keys(A.S.kor.edit || {}).some(k => A.S.kor.edit[k])) return; this.load(true); },
     render() {
-      const S = A.S.kor; S.tgl = S.tgl || LA.iso(); S.edit = S.edit || {}; if (!S.rows && !S.f) { S.f = 1; setTimeout(() => { S.f = 0; A.pages.koreksi.load(true); }, 0); }
+      const S = A.S.kor; S.tgl = S.tgl || LA.iso(); S.edit = S.edit || {}; if (!S.rows && !S.f && !A.pfRunning) { S.f = 1; setTimeout(() => { S.f = 0; A.pages.koreksi.load(true); }, 0); }
       const q = (S.q || '').toLowerCase(), rows = (S.rows || []).filter(r => !q || (r.nama + r.nisn).toLowerCase().includes(q)).slice(0, 120);
       const opt = (cur, v) => ['Hadir', 'Terlambat', 'Izin', 'Sakit', 'Alpa'].map(s => '<option' + (s === v ? ' selected' : '') + '>' + s + '</option>').join('') + (cur === 'Belum' && !v ? '' : '');
       return H.head('Koreksi Presensi', 'Koreksi Data Presensi', 'Ubah status atau tambahkan presensi murid. Setiap koreksi tercatat di log beserta pelakunya.', '') +

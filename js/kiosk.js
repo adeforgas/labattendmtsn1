@@ -62,11 +62,18 @@
   async function tataView() {
     const km = $('#km'), kd = $('#kdate'); if (!km) return;
     $$('[data-r]').forEach(a => a.classList.toggle('on', a.dataset.r === '/tata'));
-    km.innerHTML = '<div class="k-wrap"><div class="k-card"><div class="sk" style="height:34px;width:60%;margin-bottom:18px"></div><div class="sk" style="height:200px;margin-bottom:14px"></div><div class="sk" style="height:52px"></div></div></div>';
+    const cached = LS.get('la_tata', null);
+    boot(true);                                                          // muat data presensi PARALEL selagi murid membaca → tombol LANJUT instan
+    if (cached) renderTata(cached);                                      // tampil seketika dari cache lokal (stale-while-revalidate)
+    else km.innerHTML = '<div class="k-wrap"><div class="k-card"><div class="sk" style="height:34px;width:60%;margin-bottom:18px"></div><div class="sk" style="height:200px;margin-bottom:14px"></div><div class="sk" style="height:52px"></div></div></div>';
     const r = await LA.api('tata.list', {});
     if (K.route !== '/tata') return;
-    if (!r.success) { km.innerHTML = '<div class="k-wrap"><div class="k-card"><div class="alert e">' + ic('cloud_off') + '<div><b>' + esc(r.message) + '</b></div></div><p style="margin-top:14px"><button class="btn p" data-act="k.tataRetry">Coba lagi</button></div></div>'; return; }
-    const d = r.data, lanjut = '<button class="btn p lg blk" data-act="k.lanjutPresensi" style="margin-top:22px">' + ic('how_to_reg') + 'LANJUT KE MENU PRESENSI</button>';
+    if (!r.success) { if (cached) return; km.innerHTML = '<div class="k-wrap"><div class="k-card"><div class="alert e">' + ic('cloud_off') + '<div><b>' + esc(r.message) + '</b></div></div><p style="margin-top:14px"><button class="btn p" data-act="k.tataRetry">Coba lagi</button></div></div>'; return; }
+    if (JSON.stringify(r.data) !== JSON.stringify(cached)) { LS.set('la_tata', r.data); renderTata(r.data); }   // perbarui hanya bila berubah
+  }
+  function renderTata(d) {
+    const km = $('#km'); if (!km || K.route !== '/tata') return;
+    const lanjut = '<button class="btn p lg blk" data-act="k.lanjutPresensi" style="margin-top:22px">' + ic('how_to_reg') + 'LANJUT KE MENU PRESENSI</button>';
     km.innerHTML = '<div class="k-wrap"><div class="k-card tata">' +
       '<div class="row" style="margin-bottom:14px">' + LA.logoImg('k-logo') + '<div><b style="font-size:16px" data-brand="nama">' + esc(LA.app.namaApp) + '</b><div class="sm pri b" data-brand="sekolah">' + esc(LA.app.namaSekolah) + '</div></div></div>' +
       '<h1 class="ctr" style="font-size:22px;line-height:30px;letter-spacing:.02em;margin:6px 0 4px">TATA TERTIB LABORATORIUM KOMPUTER</h1>' +

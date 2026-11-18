@@ -1,8 +1,9 @@
 /* LabAttend — inti frontend: API (dedupe + batch + epoch tulis), jam server, modal, toast, router. Vanilla JS. */
 (function () {
   'use strict';
-  const V = '1.3.0', CFG = window.APP_CONFIG || {};
+  const V = '1.4.0', CFG = window.APP_CONFIG || {};
   const LA = window.LA = { V: V, ACT: {}, IN: {}, token: '', me: null, app: null };
+
   /* ---------- util ---------- */
   const LS = LA.LS = {
     get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
@@ -145,13 +146,29 @@
     return loaded[src] = new Promise((res, rej) => { const s = document.createElement('script'); s.src = src.indexOf('http') === 0 ? src : src + '?v=' + V; s.onload = res; s.onerror = () => { delete loaded[src]; rej(new Error('Gagal memuat ' + src)); }; document.head.appendChild(s); });
   };
 
+  // Muat beberapa skrip SEKALIGUS: diunduh paralel, tetapi dieksekusi sesuai urutan (async=false) → tidak ada waterfall
+  LA.loadMany = function (srcs) {
+    return Promise.all(srcs.map(src => {
+      if (loaded[src]) return loaded[src];
+      return loaded[src] = new Promise((res, rej) => {
+        const s = document.createElement('script'); s.src = src + '?v=' + V; s.async = false;
+        s.onload = res; s.onerror = () => { delete loaded[src]; rej(new Error('Gagal memuat ' + src)); }; document.head.appendChild(s);
+      });
+    }));
+  };
+  LA.ADMIN_JS = ['js/admin.js', 'js/admin2.js', 'js/admin3.js', 'js/admin4.js', 'js/admin5.js'];
+  // Pemanasan server Google (menghindari cold start) — fire & forget, tanpa menunggu hasil
+  LA.warm = function () { try { if (CFG.GAS_URL && !/GANTI|XXXX/.test(CFG.GAS_URL)) fetch(CFG.GAS_URL + '?w=1', { mode: 'no-cors', keepalive: true }).catch(() => {}); } catch (e) {} };
+  // Petunjuk prefetch (tidak dieksekusi) untuk skrip admin saat browser idle
+  LA.prefetchAdmin = function () { try { LA.ADMIN_JS.forEach(src => { const l = document.createElement('link'); l.rel = 'prefetch'; l.as = 'script'; l.href = src + '?v=' + V; document.head.appendChild(l); }); } catch (e) {} };
+
   /* ---------- router (hash) ---------- */
   LA.go = h => { if (location.hash === h) LA.render(); else location.hash = h; };
   LA.render = async function () {
     const h = (location.hash || '#/').replace(/^#/, ''), root = document.getElementById('app');
     window.scrollTo(0, 0);
     try {
-      if (/^\/(admin|login|darurat)/.test(h)) { await LA.load('js/admin.js'); LA.admin.show(h); }
+      if (/^\/(admin|login|darurat)/.test(h)) { await LA.loadMany(LA.ADMIN_JS); LA.admin.show(h); }
       else { await LA.load('js/kiosk.js'); LA.kiosk.show(h); }
     } catch (e) { root.innerHTML = '<div class="login"><div class="k-card ctr"><h2>Gagal memuat halaman</h2><p class="mut" style="margin:8px 0 16px">' + LA.esc(e.message) + '</p><button class="btn p" onclick="location.reload()">Muat ulang</button></div></div>'; }
   };
@@ -161,5 +178,5 @@
   // ikon font siap → tampilkan; cadangan 2.5 dtk
   const fok = () => document.documentElement.classList.add('fonts-ok');
   try { document.fonts.load('20px "Material Symbols Outlined"', 'home').then(fok, fok); } catch (e) { fok(); } setTimeout(fok, 2500);
-  document.addEventListener('DOMContentLoaded', () => { LA.render(); setTimeout(() => LA.load('js/admin.js').catch(() => {}), 4000); });   // prefetch admin saat idle
+  document.addEventListener('DOMContentLoaded', () => { LA.warm(); LA.render(); setTimeout(LA.prefetchAdmin, 3000); });   // pemanasan GAS + prefetch skrip admin saat idle
 })();

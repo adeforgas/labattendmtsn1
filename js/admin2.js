@@ -44,14 +44,14 @@
   LA.ACT['m.bulk'] = async el => {
     const S = MS(), ids = Object.keys(S.sel), a = el.dataset.a; if (!ids.length) return;
     if (!await LA.confirm('Terapkan ke ' + ids.length + ' murid?', { unlock: 'Buka kunci PIN', resetpin: 'Reset PIN ke 4 digit terakhir NISN', off: 'Nonaktifkan akun', on: 'Aktifkan akun' }[a], 'Terapkan')) return;
-    const r = await W(el, 'murid.aksi', a === 'off' || a === 'on' ? { ids: ids, aksi: 'aktif', nilai: a === 'on' } : { ids: ids, aksi: a }); if (r) { S.sel = {}; await A.reload(['murid', 'dash']); }
+    const r = await W(el, 'murid.aksi', a === 'off' || a === 'on' ? { ids: ids, aksi: 'aktif', nilai: a === 'on' } : { ids: ids, aksi: a });
+    if (r) { ids.forEach(id => { const m = mById(id); if (!m) return; if (a === 'unlock' || a === 'resetpin') { m.terkunci = false; m.pinGagal = 0; } else m.aktif = a === 'on'; }); S.sel = {}; A.draw(); A.sync(['murid', 'dash']); }
   };
   /* ----- hapus permanen satu murid + seluruh riwayatnya ----- */
   LA.ACT['m.del'] = async el => {
     const m = mById(el.dataset.id), r = await W(el, 'murid.infoHapus', { id: m.id }, false); if (!r) return; const x = r.data;
     LA.modal({ title: 'Hapus murid secara permanen?', body: '<div class="box" style="margin-bottom:12px"><div class="row"><span class="av r">' + esc(LA.initials(x.nama)) + '</span><div><b style="font-size:16px">' + esc(x.nama) + '</b><div class="sm mut num">NISN ' + esc(x.nisn) + ' • Kelas ' + esc(x.kelas) + '</div></div></div></div>' +
       '<div class="alert e" style="margin-bottom:12px">' + ic('warning', 'fill') + '<div><b>Tidak dapat dibatalkan.</b> Data induk murid dan <b>seluruh riwayat presensinya</b> dihapus permanen dari database:<br>• ' + x.presensi + ' catatan presensi<br>• ' + x.perpindahan + ' permintaan pindah komputer<br>• ' + x.izin + ' permintaan izin<br>• ' + (x.pelanggaran || 0) + ' catatan poin pelanggaran<br>Data murid lain dan pengaturan tidak berubah. Bila hanya ingin menonaktifkan, gunakan tombol Nonaktifkan.</div></div>' +
-      '<div class="alert e" style="margin-bottom:12px">' + ic('warning', 'fill') + '<div><b>Tidak dapat dibatalkan.</b> Data induk murid dan <b>seluruh riwayat presensinya</b> dihapus permanen dari database:<br>• ' + x.presensi + ' catatan presensi<br>• ' + x.perpindahan + ' permintaan pindah komputer<br>• ' + x.izin + ' permintaan izin<br>Data murid lain dan pengaturan tidak berubah. Bila hanya ingin menonaktifkan, gunakan tombol Nonaktifkan.</div></div>' +
       '<label class="row" style="align-items:flex-start"><input type="checkbox" id="dl-ok" data-ch="m.delchk" style="margin-top:3px"> <span>Saya mengerti dan ingin menghapus <b>' + esc(x.nama) + '</b> beserta seluruh riwayatnya.</span></label>', foot: '<button class="btn" data-act="modal.close">Batal</button><button class="btn d" id="dl-go" data-act="m.delgo" data-id="' + esc(x.id) + '" disabled>' + ic('delete_forever', 's18') + 'Hapus Permanen</button>' });
   };
   LA.IN['m.delchk'] = el => { $('#dl-go').disabled = !el.checked; };
@@ -67,12 +67,19 @@
   LA.ACT['m.add'] = () => muridForm(); LA.ACT['m.edit'] = el => muridForm(mById(el.dataset.id));
   LA.ACT['m.save'] = async el => {
     const d = { id: el.dataset.id || undefined, nisn: $('#mf-nisn').value, nama: $('#mf-nama').value, kelasId: $('#mf-kelas').value, pin: $('#mf-pin').value }; if ($('#mf-aktif')) d.aktif = $('#mf-aktif').checked;
-    const r = await W(el, 'murid.simpan', d); if (r) { LA.closeModal(); await A.reload('murid'); }
+    const r = await W(el, 'murid.simpan', d);
+    if (r) {                                                         // dialog tutup & daftar berubah SEKETIKA; sinkron ke server di latar
+      LA.closeModal(); const nisn = String(d.nisn).replace(/\D/g, ''), nama = d.nama.trim();
+      if (d.id) { const m = mById(d.id); if (m) { Object.assign(m, { nisn: nisn, nama: nama, kelasId: d.kelasId }); if (d.pin) { m.terkunci = false; m.pinGagal = 0; } if (d.aktif !== undefined) m.aktif = d.aktif; } }
+      else A.d.murid.push({ id: r.data.id, nisn: nisn, nama: nama, kelasId: d.kelasId, pinGagal: 0, terkunci: false, aktif: true, catatan: '' });
+      A.draw(); A.sync('murid');
+    }
   };
   function kelasForm(k) { k = k || {}; LA.modal({ title: k.id ? 'Ubah Kelas' : 'Tambah Kelas', body: '<div class="col" style="gap:12px">' + H.fld('Nama kelas', '<input class="inp" id="kf-nama" value="' + esc(k.nama || '') + '" placeholder="mis. VII-C">') + H.fld('Wali kelas (opsional)', '<input class="inp" id="kf-wali" value="' + esc(k.wali || '') + '">') + '</div>', foot: '<button class="btn" data-act="modal.close">Batal</button><button class="btn p" data-act="k.save" data-id="' + esc(k.id || '') + '">Simpan</button>' }); }
   LA.ACT['k.add'] = () => kelasForm(); LA.ACT['k.edit'] = el => kelasForm(A.d.kelas.find(k => k.id === el.dataset.id));
-  LA.ACT['k.save'] = async el => { const r = await W(el, 'kelas.simpan', { id: el.dataset.id || undefined, nama: $('#kf-nama').value, wali: $('#kf-wali').value }); if (r) { LA.closeModal(); await A.reload('boot'); } };
-  LA.ACT['k.del'] = async el => { if (!await LA.confirm('Hapus kelas?', 'Kelas ' + el.dataset.id + ' dihapus bila tidak punya murid.', 'Hapus', true)) return; const r = await W(null, 'kelas.hapus', { id: el.dataset.id }); if (r) await A.reload('boot'); };
+  LA.ACT['k.save'] = async el => { const r = await W(el, 'kelas.simpan', { id: el.dataset.id || undefined, nama: $('#kf-nama').value, wali: $('#kf-wali').value });
+    if (r) { LA.closeModal(); const nm = $('#kf-nama').value.trim(), wl = $('#kf-wali').value, ex = A.d.kelas.find(k => k.id === el.dataset.id); if (ex) { ex.nama = nm; ex.wali = wl; } else A.d.kelas.push({ id: nm, nama: nm, wali: wl }); A.draw(); A.sync('boot'); } };
+  LA.ACT['k.del'] = async el => { if (!await LA.confirm('Hapus kelas?', 'Kelas ' + el.dataset.id + ' dihapus bila tidak punya murid.', 'Hapus', true)) return; const r = await W(null, 'kelas.hapus', { id: el.dataset.id }); if (r) { A.d.kelas = A.d.kelas.filter(k => k.id !== el.dataset.id); A.draw(); A.sync('boot'); } };
 
   /* ----- import Excel/CSV + migrasi ----- */
   function importView() {
@@ -118,6 +125,7 @@
   } };
   LA.IN['c.q'] = LA.debounce(el => { KS().q = el.value; A.draw(); keepFocus('#kq'); }, 180); LA.ACT['c.f'] = el => { KS().f = el.dataset.f; A.draw(); };
   const kBy = id => A.d.komputer.find(k => k.deviceId === id);
+  const upKom = (id, patch) => { let k = kBy(id); if (!k) { k = { deviceId: id, aktif: true, status: 'normal', terpakaiSesi: '', sesiTerakhir: '', catatan: '', tokenAda: true, seen: 0 }; A.d.komputer.push(k); } Object.assign(k, patch); };
   LA.ACT['c.exp'] = () => LA.download('komputer-' + LA.iso() + '.csv', 'text/csv', 'DeviceID,Status,Catatan\n' + A.d.komputer.map(k => [k.deviceId, !k.aktif ? 'nonaktif' : k.status, '"' + (k.catatan || '').replace(/"/g, '""') + '"'].join(',')).join('\n'));
   LA.ACT['c.add'] = () => LA.modal({ title: 'Daftarkan Komputer', wide: true, body: '<div class="g2"><div class="col" style="gap:12px"><h3>Satu komputer</h3>' + H.fld('Device ID', '<input class="inp" id="cf-id" placeholder="LAB-PC-01" style="text-transform:uppercase">') + H.fld('Catatan', '<input class="inp" id="cf-cat" placeholder="opsional">') + '<button class="btn p" data-act="c.save1">Daftarkan &amp; buat token</button></div><div class="col" style="gap:12px"><h3>Massal</h3><div class="g2" style="gap:8px">' + H.fld('Awalan', '<input class="inp" id="cb-pre" value="LAB-PC-">') + H.fld('Mulai dari', '<input class="inp" id="cb-dari" type="number" value="1" min="1">') + '</div>' + H.fld('Jumlah (maks 60)', '<input class="inp" id="cb-n" type="number" value="40" min="1" max="60">') + '<button class="btn p" data-act="c.saveN">Daftarkan massal</button></div></div>' });
   function tokenModal(list, title) {
@@ -126,13 +134,13 @@
   }
   LA.ACT['c.copy'] = el => LA.copy(el.dataset.v);
   LA.ACT['c.csv'] = () => LA.download('token-komputer-RAHASIA.csv', 'text/csv', 'DeviceID,Token,TautanAktivasi\n' + A.tokList.map(x => [x.deviceId, x.token, linkAktif(x.deviceId, x.token)].join(',')).join('\n'));
-  LA.ACT['c.save1'] = async b => { const r = await W(b, 'komputer.simpan', { deviceId: $('#cf-id').value, catatan: $('#cf-cat').value }); if (r) { await A.reload('komputer'); if (r.data.token) tokenModal([r.data]); else LA.closeModal(); } };
-  LA.ACT['c.saveN'] = async b => { const r = await W(b, 'komputer.bulk', { prefix: $('#cb-pre').value, dari: +$('#cb-dari').value, jumlah: +$('#cb-n').value }); if (r) { await A.reload(['komputer', 'dash']); if (r.data.length) tokenModal(r.data, 'Token ' + r.data.length + ' Komputer'); else LA.closeModal(); } };
-  LA.ACT['c.tok'] = async el => { if (!await LA.confirm('Buat token baru?', 'Token lama langsung tidak berlaku — komputer ' + el.dataset.id + ' harus diaktivasi ulang.', 'Buat token baru', true)) return; const r = await W(null, 'komputer.token', { deviceId: el.dataset.id }); if (r) { await A.reload('komputer'); tokenModal([r.data]); } };
+  LA.ACT['c.save1'] = async b => { const r = await W(b, 'komputer.simpan', { deviceId: $('#cf-id').value, catatan: $('#cf-cat').value }); if (r) { upKom(r.data.deviceId, { catatan: $('#cf-cat').value }); if (r.data.token) tokenModal([r.data]); else LA.closeModal(); A.draw(); A.sync('komputer'); } };
+  LA.ACT['c.saveN'] = async b => { const r = await W(b, 'komputer.bulk', { prefix: $('#cb-pre').value, dari: +$('#cb-dari').value, jumlah: +$('#cb-n').value }); if (r) { r.data.forEach(x => upKom(x.deviceId, {})); if (r.data.length) tokenModal(r.data, 'Token ' + r.data.length + ' Komputer'); else LA.closeModal(); A.draw(); A.sync(['komputer', 'dash']); } };
+  LA.ACT['c.tok'] = async el => { if (!await LA.confirm('Buat token baru?', 'Token lama langsung tidak berlaku — komputer ' + el.dataset.id + ' harus diaktivasi ulang.', 'Buat token baru', true)) return; const r = await W(null, 'komputer.token', { deviceId: el.dataset.id }); if (r) { const k = kBy(el.dataset.id); if (k) k.tokenAda = true; tokenModal([r.data]); A.draw(); A.sync('komputer'); } };
   LA.ACT['c.pow'] = async el => { const k = kBy(el.dataset.id), v = k.aktif; k.aktif = !v; A.draw(); const r = await LA.api('komputer.simpan', { deviceId: k.deviceId, aktif: !v, status: k.status, catatan: k.catatan }); if (!r.success) { k.aktif = v; A.draw(); LA.toast(r.message, 'err'); } else { LA.toast(k.deviceId + (v ? ' dinonaktifkan' : ' diaktifkan'), 'ok'); A.reload('dash', true); } };
   LA.ACT['c.edit'] = el => { const k = kBy(el.dataset.id); LA.modal({ title: 'Ubah ' + k.deviceId, body: '<div class="col" style="gap:12px">' + H.fld('Status perangkat', '<select class="inp" id="ce-st"><option value="normal"' + (k.status !== 'maintenance' ? ' selected' : '') + '>Normal</option><option value="maintenance"' + (k.status === 'maintenance' ? ' selected' : '') + '>Perbaikan / hardware bermasalah</option></select>') + H.fld('Catatan', '<input class="inp" id="ce-cat" value="' + esc(k.catatan || '') + '">') + '<label class="row"><input type="checkbox" id="ce-ak"' + (k.aktif ? ' checked' : '') + '> Aktif</label></div>', foot: '<button class="btn" data-act="modal.close">Batal</button><button class="btn p" data-act="c.upd" data-id="' + esc(k.deviceId) + '">Simpan</button>' }); };
-  LA.ACT['c.upd'] = async b => { const r = await W(b, 'komputer.simpan', { deviceId: b.dataset.id, aktif: $('#ce-ak').checked, status: $('#ce-st').value, catatan: $('#ce-cat').value }); if (r) { LA.closeModal(); await A.reload(['komputer', 'dash']); } };
-  LA.ACT['c.del'] = async el => { if (!await LA.confirm('Hapus komputer?', el.dataset.id + ' dihapus (jika sudah punya riwayat presensi, hanya dinonaktifkan).', 'Hapus', true)) return; const r = await W(null, 'komputer.hapus', { deviceId: el.dataset.id }); if (r) await A.reload(['komputer', 'dash']); };
+  LA.ACT['c.upd'] = async b => { const r = await W(b, 'komputer.simpan', { deviceId: b.dataset.id, aktif: $('#ce-ak').checked, status: $('#ce-st').value, catatan: $('#ce-cat').value }); if (r) { LA.closeModal(); upKom(b.dataset.id, { aktif: $('#ce-ak').checked, status: $('#ce-st').value, catatan: $('#ce-cat').value }); A.draw(); A.sync(['komputer', 'dash']); } };
+  LA.ACT['c.del'] = async el => { if (!await LA.confirm('Hapus komputer?', el.dataset.id + ' dihapus (jika sudah punya riwayat presensi, hanya dinonaktifkan).', 'Hapus', true)) return; const r = await W(null, 'komputer.hapus', { deviceId: el.dataset.id }); if (r) { A.d.komputer = A.d.komputer.filter(k => k.deviceId !== el.dataset.id); A.draw(); A.sync(['komputer', 'dash']); } };
 
   /* ================= JADWAL ================= */
   P.jadwal = { render() {
@@ -146,17 +154,22 @@
       '<details><summary class="sm b" style="cursor:pointer">Toleransi khusus jadwal ini (opsional)</summary><div class="g3" style="gap:8px;margin-top:8px">' + H.fld('Buka (mnt)', '<input class="inp" type="number" id="jf-b" value="' + esc(j.bukaMenit || '') + '" placeholder="default">') + H.fld('Hadir s/d (mnt)', '<input class="inp" type="number" id="jf-hd" value="' + esc(j.hadirMenit || '') + '" placeholder="default">') + H.fld('Batas akhir (mnt)', '<input class="inp" type="number" id="jf-bt" value="' + esc(j.batasMenit || '') + '" placeholder="default">') + '</div></details><label class="row"><input type="checkbox" id="jf-a"' + (j.aktif === 'TRUE' ? ' checked' : '') + '> Jadwal aktif</label></div>', foot: '<button class="btn" data-act="modal.close">Batal</button><button class="btn p" data-act="j.save" data-id="' + esc(j.id || '') + '">Simpan</button>' });
   }
   LA.ACT['j.add'] = () => jForm(); LA.ACT['j.edit'] = el => jForm(A.d.jadwal.find(j => j.id === el.dataset.id));
-  LA.ACT['j.save'] = async b => { const r = await W(b, 'jadwal.simpan', { id: b.dataset.id || undefined, hari: +$('#jf-h').value, kelasId: $('#jf-k').value, mulai: $('#jf-m').value, selesai: $('#jf-s').value, mapel: $('#jf-p').value, guru: $('#jf-g').value, bukaMenit: $('#jf-b').value, hadirMenit: $('#jf-hd').value, batasMenit: $('#jf-bt').value, aktif: $('#jf-a').checked }); if (r) { LA.closeModal(); await A.reload(['jadwal', 'dash']); } };
-  LA.ACT['j.del'] = async el => { if (!await LA.confirm('Hapus jadwal?', 'Jadwal dihapus permanen. Riwayat presensi tidak terpengaruh.', 'Hapus', true)) return; const r = await W(null, 'jadwal.hapus', { id: el.dataset.id }); if (r) await A.reload(['jadwal', 'dash']); };
+  LA.ACT['j.save'] = async b => { const r = await W(b, 'jadwal.simpan', { id: b.dataset.id || undefined, hari: +$('#jf-h').value, kelasId: $('#jf-k').value, mulai: $('#jf-m').value, selesai: $('#jf-s').value, mapel: $('#jf-p').value, guru: $('#jf-g').value, bukaMenit: $('#jf-b').value, hadirMenit: $('#jf-hd').value, batasMenit: $('#jf-bt').value, aktif: $('#jf-a').checked });
+    if (r) {
+      LA.closeModal(); const v = { hari: String($('#jf-h').value), kelasId: $('#jf-k').value, mapel: $('#jf-p').value, guru: $('#jf-g').value, mulai: $('#jf-m').value, selesai: $('#jf-s').value, bukaMenit: $('#jf-b').value, hadirMenit: $('#jf-hd').value, batasMenit: $('#jf-bt').value, aktif: $('#jf-a').checked ? 'TRUE' : 'FALSE' };
+      const ex = A.d.jadwal.find(j => j.id === (b.dataset.id || r.data.id)); if (ex) Object.assign(ex, v); else A.d.jadwal.push(Object.assign({ id: r.data.id }, v)); A.draw(); A.sync(['jadwal', 'dash']);
+    } };
+  LA.ACT['j.del'] = async el => { if (!await LA.confirm('Hapus jadwal?', 'Jadwal dihapus permanen. Riwayat presensi tidak terpengaruh.', 'Hapus', true)) return; const r = await W(null, 'jadwal.hapus', { id: el.dataset.id }); if (r) { A.d.jadwal = A.d.jadwal.filter(j => j.id !== el.dataset.id); A.draw(); A.sync(['jadwal', 'dash']); } };
 
   /* ================= LAPORAN REKAP ================= */
   const LS_ = () => A.S.lap;
   P.laporan = {
     async load(quiet) { const S = LS_(); S.mode = S.mode || 'harian'; S.tgl = S.tgl || LA.iso(); S.bln = S.bln || LA.iso().slice(0, 7); if (!quiet) { S.data = null; A.draw(); }
-      const r = await LA.api('laporan.rekap', { mode: S.mode, tanggal: S.tgl, bulan: S.bln, kelasId: S.kelas || '' }); if (r.success) { S.data = r.data; S.pg = 1; if (A.page === 'laporan') A.draw(); } else LA.toast(r.message, 'err'); },
+      const r = await LA.api('laporan.rekap', { mode: S.mode, tanggal: S.tgl, bulan: S.bln, kelasId: S.kelas || '' }); if (r.success) { const same = quiet && A.same(S.data, r.data); S.data = r.data; if (!same) S.pg = 1; if (A.page === 'laporan') { if (!quiet) A.draw(); else if (!same) A.softDraw(); } } else if (!quiet) LA.toast(r.message, 'err'); },
+    revalidate() { this.load(true); },
     render() {
       const S = LS_(); S.mode = S.mode || 'harian'; S.tgl = S.tgl || LA.iso(); S.bln = S.bln || LA.iso().slice(0, 7); S.pg = S.pg || 1;
-      if (!S.data && !S.f) { S.f = 1; setTimeout(() => { S.f = 0; P.laporan.load(true); LA.load(XLSX_URL).catch(() => {}); }, 0); }
+      if (!S.data && !S.f && !A.pfRunning) { S.f = 1; setTimeout(() => { S.f = 0; P.laporan.load(true); LA.load(XLSX_URL).catch(() => {}); }, 0); }
       const D = S.data, har = S.mode === 'harian', ac = '<button class="btn" data-act="l.xls"' + (D ? '' : ' disabled') + '>' + ic('table_view', 's18') + 'Unduh Excel (.xlsx)</button><button class="btn p" data-act="l.pdf"' + (D ? '' : ' disabled') + '>' + ic('picture_as_pdf', 's18') + 'Unduh PDF</button>';
       let h = H.head('Buku induk digital', 'Rekapitulasi Presensi &amp; Jam Praktik Lab', 'Supervisi statistik kehadiran murid per kelas.', ac) +
         '<div class="card"><div class="row wrap"><div class="tabs"><button class="' + (har ? 'on' : '') + '" data-act="l.mode" data-m="harian">Rekap Harian</button><button class="' + (!har ? 'on' : '') + '" data-act="l.mode" data-m="bulanan">Rekap Bulanan</button></div>' + (har ? '<input type="date" class="inp" style="width:auto" value="' + S.tgl + '" data-ch="l.tgl">' : '<input type="month" class="inp" style="width:auto" value="' + S.bln + '" data-ch="l.bln">') + '<select class="inp" style="width:auto" data-ch="l.kelas">' + H.kelasOpt(S.kelas, 'Semua kelas') + '</select><span class="grow"></span><div class="sch" style="min-width:200px"><span class="ms">search</span><input class="inp" id="lq2" placeholder="Cari NISN atau nama…" value="' + esc(S.q || '') + '" data-in="l.q"></div></div></div>';
@@ -198,7 +211,7 @@
   /* ================= PENGATURAN ================= */
   const PS = () => A.S.set || (A.S.set = {});
   P.pengaturan = {
-    after() { const S = PS(); if (S.fetched) return; S.fetched = 1; Promise.all([LA.apiQ('pengguna.list'), LA.apiQ('keamanan.status')]).then(([u, k]) => { if (u.success) S.users = u.data; if (k.success) S.sec = k.data; if (A.page === 'pengaturan' && !$('.ov') && !document.activeElement.closest('#apg input,#apg textarea')) A.draw(); }); },
+    after() { const S = PS(); if (S.fetched || A.pfRunning) return; S.fetched = 1; Promise.all([LA.apiQ('pengguna.list'), LA.apiQ('keamanan.status')]).then(([u, k]) => { if (u.success) S.users = u.data; if (k.success) S.sec = k.data; if (A.page === 'pengaturan' && !$('.ov') && !document.activeElement.closest('#apg input,#apg textarea')) A.draw(); }); },
     render() {
       const S = PS(), a = A.d.app, st = A.d.settings, lg = S.logo || a.logo;
       return H.head('Konfigurasi', 'Pengaturan Aplikasi &amp; Branding', 'Perubahan nama dan logo berlaku untuk semua pengguna; data murid, jadwal, dan riwayat presensi tidak terpengaruh.', '') +

@@ -7,13 +7,15 @@
 
   async function load(quiet) {
     const s = T(); const r = await LA.api('tata.admin', {});
-    if (r.success) { s.list = r.data; if (A.page === 'tata' && (!quiet || !$('.ov'))) A.draw(); }
-    else LA.toast(r.message, 'err');
+    if (r.success) { const same = quiet && A.same(s.list, r.data); s.list = r.data; if (A.page === 'tata') { if (!quiet) A.draw(); else if (!same) A.softDraw(); } }
+    else if (!quiet) LA.toast(r.message, 'err');
   }
+  const bersih = t => String(t || '').replace(/^\s*(\d{1,3}\s*[.):\-]\s*|\d{1,3}(?=[A-Za-z\u00C0-\u024F]))/, '').trim();   // sama dengan aturan server
+  const sibuk = id => /^tmp_/.test(id || '') && (LA.toast('Sedang menyimpan, tunggu sebentar…'), true);
   P.tata = {
     render() {
       const s = T();
-      if (!s.list && !s.f) { s.f = 1; setTimeout(() => { s.f = 0; load(true); }, 0); }
+      if (!s.list && !s.f && !A.pfRunning) { s.f = 1; setTimeout(() => { s.f = 0; load(true); }, 0); }
       const L = s.list || [], aktif = L.filter(x => x.aktif).length;
       const kepala = A.me && A.me.role === 'kepala';
       const act = kepala ? '' : '<button class="btn p" data-act="tt.add">' + ic('add', 's18') + 'Tambah Tata Tertib</button>';
@@ -38,20 +40,23 @@
       foot: '<button class="btn" data-act="modal.close">Batal</button><button class="btn p" data-act="tt.save" data-id="' + esc(x.id || '') + '">Simpan</button>' });
   }
   LA.ACT['tt.add'] = () => form();
-  LA.ACT['tt.edit'] = el => form((T().list || []).find(x => x.id === el.dataset.id));
+  LA.ACT['tt.edit'] = el => sibuk(el.dataset.id) || form((T().list || []).find(x => x.id === el.dataset.id));
   LA.ACT['tt.save'] = async el => {
     const isi = $('#tt-isi').value.trim(); if (isi.length < 3) return LA.toast('Isi minimal 3 karakter', 'err');
-    const id = el.dataset.id || undefined; LA.busy(el, true);
-    const r = await LA.api('tata.simpan', { id: id, isi: isi }); LA.busy(el, false);
-    if (!r.success) return LA.toast(r.message, 'err');
-    // status untuk poin baru/edit: sinkronkan dengan checkbox
-    const aktifWant = $('#tt-aktif') ? $('#tt-aktif').checked : true, idFinal = id || (r.data && r.data.id);
-    const cur = (T().list || []).find(x => x.id === idFinal);
-    if (idFinal && (!cur || cur.aktif !== aktifWant)) await LA.api('tata.status', { id: idFinal, aktif: aktifWant });
-    LA.closeModal(); LA.toast(r.message, 'ok'); await load(true); A.draw();
+    const id = el.dataset.id || undefined, aktif = $('#tt-aktif') ? $('#tt-aktif').checked : true, s = T(), now = LA.iso() + ' ' + LA.fmtTime(LA.Clock.now());
+    let tmp = null, prev = null;
+    if (id) { const x = s.list.find(q => q.id === id); prev = Object.assign({}, x); Object.assign(x, { isi: bersih(isi), aktif: aktif, diperbarui: now }); }
+    else { tmp = { id: 'tmp_' + Date.now(), isi: bersih(isi), urutan: s.list.length + 1, aktif: aktif, dibuat: now, diperbarui: now }; s.list.push(tmp); }
+    LA.closeModal(); A.draw();                                           // optimistis: dialog tertutup & daftar langsung berubah
+    const r = await LA.api('tata.simpan', { id: id, isi: isi, aktif: aktif });   // simpan + status dalam 1 panggilan
+    if (!r.success) {
+      if (tmp) s.list = s.list.filter(q => q !== tmp); else Object.assign(s.list.find(q => q.id === id), prev);
+      A.draw(); LA.toast(r.message, 'err'); form(Object.assign({}, prev || {}, { isi: isi, aktif: aktif })); return;   // buka lagi dengan isian semula
+    }
+    if (tmp) tmp.id = r.data.id; LA.toast(r.message, 'ok'); load(true);
   };
-
   LA.ACT['tt.tgl'] = async el => {
+    if (sibuk(el.dataset.id)) return;
     const id = el.dataset.id, v = el.dataset.v === '1', s = T(), x = s.list.find(q => q.id === id); if (!x) return;
     const prev = x.aktif; x.aktif = v; A.draw();                          // optimistis
     const r = await LA.api('tata.status', { id: id, aktif: v });
@@ -60,6 +65,7 @@
   };
 
   LA.ACT['tt.mv'] = async el => {
+    if (sibuk(el.dataset.id)) return;
     const s = T(), L = s.list, i = L.findIndex(q => q.id === el.dataset.id), j = el.dataset.d === 'up' ? i - 1 : i + 1;
     if (i < 0 || j < 0 || j >= L.length) return;
     const prev = L.slice(); const nxt = L.slice(); [nxt[i], nxt[j]] = [nxt[j], nxt[i]]; s.list = nxt; A.draw();   // optimistis
@@ -68,10 +74,13 @@
   };
 
   LA.ACT['tt.del'] = async el => {
+    if (sibuk(el.dataset.id)) return;
     const x = (T().list || []).find(q => q.id === el.dataset.id); if (!x) return;
     if (!await LA.confirm('Hapus tata tertib?', '“' + x.isi.slice(0, 120) + (x.isi.length > 120 ? '…' : '') + '” akan dihapus permanen dari daftar. Bila hanya ingin menyembunyikan, pilih Sembunyikan.', 'Hapus', true)) return;
+    const s = T(), prev = s.list.slice(); s.list = s.list.filter(q => q.id !== x.id); A.draw();      // optimistis
     const r = await LA.api('tata.hapus', { id: x.id });
-    if (!r.success) return LA.toast(r.message, 'err');
-    LA.toast(r.message, 'ok'); await load(true); A.draw();
+    if (!r.success) { s.list = prev; A.draw(); return LA.toast(r.message, 'err'); }
+    LA.toast(r.message, 'ok'); load(true);
   };
+  P.tata.revalidate = () => load(true);
 })();

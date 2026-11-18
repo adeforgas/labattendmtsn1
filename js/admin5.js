@@ -7,12 +7,13 @@
   const keep = sel => { const i = $(sel); if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); } };
   const today = () => LA.iso();
 
-  async function load() {
+  async function load(quiet) {
     const s = S(); s.fetching = 1;
     const [m, r] = await Promise.all([LA.apiQ('pel.master'), LA.apiQ('pel.list')]); s.fetching = 0;
-    if (m.success) s.master = m.data; else LA.toast(m.message, 'err');
-    if (r.success) s.rows = r.data.rows; else LA.toast(r.message, 'err');
-    if (A.page === 'pelanggaran' && !$('.ov')) A.draw();
+    let ch = false;
+    if (m.success) { if (!A.same(s.master, m.data)) ch = true; s.master = m.data; } else if (!quiet) LA.toast(m.message, 'err');
+    if (r.success) { if (!A.same(s.rows, r.data.rows)) ch = true; s.rows = r.data.rows; } else if (!quiet) LA.toast(r.message, 'err');
+    if (A.page === 'pelanggaran' && (ch || !quiet)) A.softDraw();
   }
   const kelasNama = id => ((A.d.kelas || []).find(k => k.id === id) || {}).nama || id;
   function filtered() {
@@ -34,7 +35,7 @@
 
   P.pelanggaran = {
     render() {
-      const s = S(); if (!s.master && !s.fetching) load();
+      const s = S(); if (!s.master && !s.fetching && !A.pfRunning) load(true);
       const tabs = '<div class="tabs" style="align-self:flex-start">' + [['catat', 'edit_note', 'Pencatatan & Riwayat'], ['rekap', 'leaderboard', 'Rekap per Murid'], ['jenis', 'rule', 'Jenis Pelanggaran']].map(t => '<button class="' + (s.tab === t[0] ? 'on' : '') + '" data-act="pl.tab" data-t="' + t[0] + '">' + ic(t[1], 's18') + t[2] + '</button>').join('') + '</div>';
       let body = H.sk(4);
       if (s.master && s.rows) body = ({ catat: vCatat, rekap: vRekap, jenis: vJenis })[s.tab]();
@@ -84,10 +85,14 @@
   LA.IN['pl.fc'] = el => { S().form.ket = el.value; };
   LA.ACT['pl.simpan'] = async b => {
     const fm = S().form; if (!fm.murid || !fm.jenis) return;
-    LA.busy(b, true);
-    const r = await LA.api('pel.catat', { muridId: fm.murid, pelanggaranId: fm.jenis, keterangan: fm.ket || '', tanggal: fm.tgl || today() });   // hanya ID: nama/poin/kelas ditetapkan server
-    LA.busy(b, false); if (!r.success) return LA.toast(r.message, 'err');
-    S().rows.unshift(r.data); S().form = { kelas: fm.kelas, jenis: fm.jenis, tgl: fm.tgl }; LA.toast(r.message, 'ok'); S().pg = 1; A.draw(); load();
+    if (/^tmp_/.test(fm.jenis)) return LA.toast('Jenis pelanggaran masih disimpan, tunggu sebentar…');
+    const m = (A.d.murid || []).find(x => x.id === fm.murid), j = S().master.find(x => x.id === fm.jenis), snap = Object.assign({}, fm), now = today() + ' ' + LA.fmtTime(LA.Clock.now());
+    const tmp = { id: 'tmp_' + Date.now(), waktu: now, tanggal: fm.tgl || today(), muridId: fm.murid, namaMurid: m ? m.nama : '', kelasId: fm.kelas, kelas: kelasNama(fm.kelas), pelanggaranId: fm.jenis, namaPelanggaran: j ? j.nama : '', poin: j ? j.poin : 0, keterangan: fm.ket || '', admin: (LA.me && LA.me.email) || '' };
+    S().rows.unshift(tmp); S().form = { kelas: fm.kelas, jenis: fm.jenis, tgl: fm.tgl }; S().pg = 1; A.draw();          // optimistis: langsung tampil di riwayat
+    const r = await LA.api('pel.catat', { muridId: snap.murid, pelanggaranId: snap.jenis, keterangan: snap.ket || '', tanggal: snap.tgl || today() });   // hanya ID: nama/poin/kelas ditetapkan server
+    if (!r.success) { S().rows = S().rows.filter(x => x !== tmp); S().form = snap; A.draw(); return LA.toast(r.message, 'err'); }
+    const i = S().rows.indexOf(tmp); if (i >= 0) S().rows[i] = r.data;                                                  // ganti dengan data resmi dari server
+    LA.toast(r.message, 'ok'); A.draw(); load(true);
   };
 
   /* ---------- detail murid ---------- */
@@ -100,6 +105,7 @@
 
   /* ---------- hapus ---------- */
   LA.ACT['pl.hapus'] = async el => {
+    if (/^tmp_/.test(el.dataset.id)) return LA.toast('Catatan masih disimpan, tunggu sebentar…');
     const s = S(), r = s.rows.find(x => x.id === el.dataset.id); if (!r) return;
     if (!await LA.confirm('Hapus catatan pelanggaran?', r.namaMurid + ' • ' + r.namaPelanggaran + ' (' + r.poin + ' poin, ' + LA.dmy(r.tanggal) + '). Total poin murid dihitung ulang otomatis. Tidak dapat dibatalkan.', 'Hapus', true)) return;
     const prev = s.rows.slice(); s.rows = s.rows.filter(x => x.id !== r.id); A.draw();            // optimistis
@@ -137,18 +143,33 @@
   const mBy = id => (S().master || []).find(m => m.id === id);
   LA.ACT['pj.add'] = () => jForm(); LA.ACT['pj.edit'] = el => jForm(mBy(el.dataset.id));
   LA.ACT['pj.save'] = async b => {
-    const r = await A.W(b, 'pel.masterSimpan', { id: b.dataset.id || undefined, nama: $('#pj-n').value, poin: Number($('#pj-p').value), aktif: $('#pj-a').checked });
-    if (r) { LA.closeModal(); load(); }
+    const d = { id: b.dataset.id || undefined, nama: $('#pj-n').value.trim(), poin: Number($('#pj-p').value), aktif: $('#pj-a').checked };
+    if (d.nama.length < 3) return LA.toast('Nama pelanggaran minimal 3 karakter', 'err');
+    if (!isFinite(d.poin) || Math.floor(d.poin) !== d.poin || d.poin < 1 || d.poin > 1000) return LA.toast('Poin harus bilangan bulat 1–1000', 'err');
+    const s = S(); let tmp = null, prev = null;
+    if (d.id) { const m = mBy(d.id); prev = Object.assign({}, m); Object.assign(m, { nama: d.nama, poin: d.poin, aktif: d.aktif }); }
+    else { tmp = { id: 'tmp_' + Date.now(), nama: d.nama, poin: d.poin, aktif: d.aktif, dibuat: '', diperbarui: '', dipakai: 0 }; s.master.push(tmp); }
+    LA.closeModal(); A.draw();                                          // optimistis
+    const r = await LA.api('pel.masterSimpan', d);
+    if (!r.success) { if (tmp) s.master = s.master.filter(x => x !== tmp); else Object.assign(mBy(d.id), prev); A.draw(); LA.toast(r.message, 'err'); jForm(Object.assign({}, prev || {}, d)); return; }
+    if (tmp) tmp.id = r.data.id; LA.toast(r.message, 'ok'); load(true);
   };
   LA.ACT['pj.tgl'] = async el => {
+    if (/^tmp_/.test(el.dataset.id)) return LA.toast('Masih disimpan, tunggu sebentar…');
     const m = mBy(el.dataset.id), v = m.aktif; m.aktif = !v; A.draw();
     const r = await LA.api('pel.masterSimpan', { id: m.id, nama: m.nama, poin: m.poin, aktif: !v });
     if (!r.success) { m.aktif = v; A.draw(); return LA.toast(r.message, 'err'); } LA.toast(m.nama + (v ? ' dinonaktifkan' : ' diaktifkan'), 'ok');
   };
   LA.ACT['pj.del'] = async el => {
+    if (/^tmp_/.test(el.dataset.id)) return LA.toast('Masih disimpan, tunggu sebentar…');
     const m = mBy(el.dataset.id);
     const msg = m.dipakai ? '“' + m.nama + '” sudah dipakai ' + m.dipakai + '× dalam catatan pelanggaran. Jenis ini akan DINONAKTIFKAN (tidak dihapus): tidak bisa dipilih untuk catatan baru, tetapi seluruh riwayat lama tetap tersimpan dan tidak berubah.' : '“' + m.nama + '” belum pernah dipakai dan akan dihapus permanen.';
     if (!await LA.confirm(m.dipakai ? 'Nonaktifkan jenis pelanggaran?' : 'Hapus jenis pelanggaran?', msg, m.dipakai ? 'Nonaktifkan' : 'Hapus', !m.dipakai)) return;
-    const r = await A.W(null, 'pel.masterHapus', { id: m.id }); if (r) { load(); }
+    const prev = Object.assign({}, m), idx = S().master.indexOf(m);
+    if (m.dipakai) m.aktif = false; else S().master.splice(idx, 1); A.draw();                                   // optimistis
+    const r = await LA.api('pel.masterHapus', { id: prev.id });
+    if (!r.success) { if (m.dipakai) Object.assign(m, prev); else S().master.splice(idx, 0, m); A.draw(); return LA.toast(r.message, 'err'); }
+    LA.toast(r.message, 'ok'); load(true);
   };
+  P.pelanggaran.revalidate = () => load(true);
 })();
